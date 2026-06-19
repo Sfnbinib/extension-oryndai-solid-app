@@ -1,0 +1,217 @@
+{
+  "version": "0.1",
+  "name": "f1_front_wing",
+  "source": "deterministic_template",
+  "units": "mm",
+  "prompt": "Create a simplified F1 front wing with main airfoil, two side endplates, mounting pylons, and 4 mounting holes.",
+  "assumptions": [
+    "This is a simplified visual/mechanical envelope, not an aerodynamic solver output.",
+    "Main plane width assumed 620 mm for demo scale.",
+    "Airfoil curvature is approximated with rectangular/extruded proxy geometry in this offline macro prototype."
+  ],
+  "warnings": [
+    "Real airfoil surfaces should come from research/image/mesh adapters or a surface modeling macro."
+  ],
+  "operations": [
+    {
+      "command": "sketch",
+      "id": "main_plane",
+      "args": {
+        "plane": "Front"
+      },
+      "description": "Sketch main wing planform"
+    },
+    {
+      "command": "rectangle",
+      "id": "main_airfoil_proxy",
+      "args": {
+        "center": {
+          "x": 0,
+          "y": 0
+        },
+        "width": 620,
+        "height": 42
+      },
+      "description": "Simplified main airfoil envelope"
+    },
+    {
+      "command": "extrude",
+      "id": "main_airfoil_body",
+      "args": {
+        "depth": 80,
+        "symmetric": true
+      },
+      "description": "Create simplified main plane"
+    },
+    {
+      "command": "sketch",
+      "id": "left_endplate_sketch",
+      "args": {
+        "plane": "Right"
+      },
+      "description": "Sketch left endplate"
+    },
+    {
+      "command": "rectangle",
+      "id": "left_endplate_profile",
+      "args": {
+        "center": {
+          "x": -330,
+          "y": 0
+        },
+        "width": 6,
+        "height": 120
+      },
+      "description": "Left endplate"
+    },
+    {
+      "command": "extrude",
+      "id": "left_endplate",
+      "args": {
+        "depth": 90
+      },
+      "description": "Extrude left endplate"
+    },
+    {
+      "command": "sketch",
+      "id": "right_endplate_sketch",
+      "args": {
+        "plane": "Right"
+      },
+      "description": "Sketch right endplate"
+    },
+    {
+      "command": "rectangle",
+      "id": "right_endplate_profile",
+      "args": {
+        "center": {
+          "x": 330,
+          "y": 0
+        },
+        "width": 6,
+        "height": 120
+      },
+      "description": "Right endplate"
+    },
+    {
+      "command": "extrude",
+      "id": "right_endplate",
+      "args": {
+        "depth": 90
+      },
+      "description": "Extrude right endplate"
+    },
+    {
+      "command": "sketch",
+      "id": "pylon_sketch",
+      "args": {
+        "plane": "Top"
+      },
+      "description": "Sketch two mounting pylons"
+    },
+    {
+      "command": "rectangle",
+      "id": "pylon_left",
+      "args": {
+        "center": {
+          "x": -55,
+          "y": 0
+        },
+        "width": 18,
+        "height": 80
+      },
+      "description": "Left pylon"
+    },
+    {
+      "command": "rectangle",
+      "id": "pylon_right",
+      "args": {
+        "center": {
+          "x": 55,
+          "y": 0
+        },
+        "width": 18,
+        "height": 80
+      },
+      "description": "Right pylon"
+    },
+    {
+      "command": "extrude",
+      "id": "pylons",
+      "args": {
+        "depth": 60
+      },
+      "description": "Extrude pylons"
+    },
+    {
+      "command": "hole",
+      "id": "mount_hole_1",
+      "args": {
+        "center": {
+          "x": -55,
+          "y": -25
+        },
+        "diameter": 6,
+        "through_all": true
+      },
+      "description": "Mount hole 1"
+    },
+    {
+      "command": "hole",
+      "id": "mount_hole_2",
+      "args": {
+        "center": {
+          "x": -55,
+          "y": 25
+        },
+        "diameter": 6,
+        "through_all": true
+      },
+      "description": "Mount hole 2"
+    },
+    {
+      "command": "hole",
+      "id": "mount_hole_3",
+      "args": {
+        "center": {
+          "x": 55,
+          "y": -25
+        },
+        "diameter": 6,
+        "through_all": true
+      },
+      "description": "Mount hole 3"
+    },
+    {
+      "command": "hole",
+      "id": "mount_hole_4",
+      "args": {
+        "center": {
+          "x": 55,
+          "y": 25
+        },
+        "diameter": 6,
+        "through_all": true
+      },
+      "description": "Mount hole 4"
+    },
+    {
+      "command": "fillet",
+      "id": "aero_softening",
+      "args": {
+        "radius": 3,
+        "selection": "outer_edges"
+      },
+      "description": "Softened visual edges"
+    },
+    {
+      "command": "export",
+      "id": "export_step",
+      "args": {
+        "format": "STEP",
+        "filename": "f1_front_wing.step"
+      },
+      "description": "Export editable STEP"
+    }
+  ]
+}

@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ORYND CAD Bridge Preview</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --panel-2: #f9fafb;
+      --text: #15191f;
+      --muted: #687385;
+      --line: #d9dfe7;
+      --accent: #0f766e;
+      --accent-dark: #115e59;
+      --warn: #9a3412;
+      --danger: #b42318;
+      --ok: #067647;
+      --code: #101828;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+    }
+    aside {
+      background: #111827;
+      color: #f9fafb;
+      padding: 16px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+    .mark {
+      width: 32px;
+      height: 32px;
+      border: 1px solid #5eead4;
+      display: grid;
+      place-items: center;
+      color: #99f6e4;
+      font-weight: 700;
+    }
+    .brand strong { display: block; font-size: 15px; }
+    .brand span { display: block; color: #aeb8c7; font-size: 12px; }
+    nav {
+      display: grid;
+      gap: 6px;
+    }
+    .nav-item {
+      padding: 9px 10px;
+      color: #d4d9e2;
+      border: 1px solid transparent;
+      background: transparent;
+      text-align: left;
+      border-radius: 6px;
+    }
+    .nav-item.active {
+      background: #1f2937;
+      border-color: #374151;
+      color: #ffffff;
+    }
+    .side-status {
+      border-top: 1px solid #2f3a4a;
+      padding-top: 12px;
+      color: #b8c1ce;
+      font-size: 12px;
+    }
+    main {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: 56px 1fr;
+    }
+    header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      padding: 0 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 650;
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+    .pill {
+      border: 1px solid var(--line);
+      background: var(--panel-2);
+      border-radius: 999px;
+      padding: 5px 9px;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+    .pill.ok { color: var(--ok); border-color: #abefc6; background: #ecfdf3; }
+    .pill.warn { color: var(--warn); border-color: #fedf89; background: #fffaeb; }
+    .workspace {
+      padding: 16px;
+      display: grid;
+      grid-template-columns: minmax(330px, 410px) minmax(0, 1fr);
+      gap: 14px;
+      max-width: 1480px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .stack { display: grid; gap: 12px; align-content: start; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      min-width: 0;
+    }
+    .panel h2 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 650;
+    }
+    label {
+      display: block;
+      margin: 10px 0 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px 10px;
+      font: inherit;
+      background: #ffffff;
+      color: var(--text);
+    }
+    textarea {
+      min-height: 138px;
+      resize: vertical;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .row > * { flex: 1; }
+    button {
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 9px 12px;
+      font: inherit;
+      background: #334155;
+      color: #ffffff;
+      cursor: default;
+      white-space: nowrap;
+    }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent-dark);
+    }
+    button.secondary {
+      background: #ffffff;
+      border-color: var(--line);
+      color: var(--text);
+    }
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(100px, 1fr));
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .step {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      background: var(--panel-2);
+      min-height: 74px;
+    }
+    .step strong {
+      display: block;
+      font-size: 12px;
+      margin-bottom: 4px;
+    }
+    .step span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .step.done { border-color: #abefc6; background: #f0fdf4; }
+    .step.pending { border-color: #fedf89; background: #fffbeb; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+      gap: 12px;
+    }
+    .table {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .table-row {
+      display: grid;
+      grid-template-columns: 120px minmax(0, 1fr);
+      gap: 10px;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      background: #ffffff;
+    }
+    .table-row:last-child { border-bottom: 0; }
+    .table-row b { font-size: 12px; }
+    .table-row span {
+      color: var(--muted);
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .tab {
+      border: 1px solid var(--line);
+      background: #ffffff;
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .tab.active {
+      background: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent-dark);
+    }
+    pre {
+      margin: 0;
+      min-height: 370px;
+      max-height: 66vh;
+      overflow: auto;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: var(--code);
+      color: #e5e7eb;
+      border-radius: 8px;
+      padding: 13px;
+      font-size: 12px;
+    }
+    .status-list {
+      display: grid;
+      gap: 7px;
+    }
+    .status-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px 9px;
+      background: var(--panel-2);
+    }
+    .status-line span { color: var(--muted); }
+    .status-line b.ok { color: var(--ok); }
+    .status-line b.warn { color: var(--warn); }
+    .status-line b.bad { color: var(--danger); }
+    @media (max-width: 1040px) {
+      .app { grid-template-columns: 1fr; }
+      aside { display: none; }
+      .workspace { grid-template-columns: 1fr; }
+      .pipeline { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside>
+      <div class="brand">
+        <div class="mark">OC</div>
+        <div>
+          <strong>ORYND CAD Bridge</strong>
+          <span>SolidWorks companion</span>
+        </div>
+      </div>
+      <nav aria-label="Preview navigation">
+        <button class="nav-item active">Generate</button>
+        <button class="nav-item">Operation plan</button>
+        <button class="nav-item">Macro preview</button>
+        <button class="nav-item">Model routes</button>
+        <button class="nav-item">Settings</button>
+      </nav>
+      <div class="side-status">
+        Prototype view. Execution remains locked until validation and explicit approval are implemented in the SolidWorks target.
+      </div>
+    </aside>
+    <main>
+      <header>
+        <h1>Generate CAD Macro</h1>
+        <div class="header-actions">
+          <span class="pill warn">Supabase config needs fix</span>
+          <span class="pill ok">Static validation ready</span>
+          <span class="pill">SolidWorks runtime pending</span>
+        </div>
+      </header>
+      <div class="workspace">
+        <div class="stack">
+          <section class="panel">
+            <h2>Account And Model</h2>
+            <label>Email</label>
+            <input value="engineer@example.com" aria-label="Email">
+            <label>Model Provider</label>
+            <div class="row">
+              <select aria-label="Provider">
+                <option>Anthropic Claude Opus</option>
+                <option>OpenAI</option>
+                <option>Ollama local</option>
+              </select>
+              <input value="claude-opus" aria-label="Model">
+            </div>
+            <label>API Key</label>
+            <div class="row">
+              <input type="password" value="sk-ant-0000000000" aria-label="API key">
+              <button class="secondary">Save</button>
+            </div>
+          </section>
+          <section class="panel">
+            <h2>Engineering Prompt</h2>
+            <textarea aria-label="Prompt">Create a 280 mm vented brake disc with 5 bolt holes, hub bore, chamfered outer edges, STEP export, and a readable SolidWorks macro preview.</textarea>
+            <div class="row" style="margin-top:10px">
+              <button class="primary">Run Scenario</button>
+              <button class="secondary">Generate Macro</button>
+            </div>
+          </section>
+          <section class="panel">
+            <h2>Backend Status</h2>
+            <div class="status-list">
+              <div class="status-line"><span>Supabase URL</span><b class="bad">Invalid</b></div>
+              <div class="status-line"><span>Publishable key</span><b class="ok">Present</b></div>
+              <div class="status-line"><span>Secret key</span><b class="bad">Placeholder</b></div>
+              <div class="status-line"><span>GenCAD repo</span><b class="warn">Not installed</b></div>
+            </div>
+          </section>
+        </div>
+        <div class="stack">
+          <section class="panel">
+            <h2>Pipeline</h2>
+            <div class="pipeline">
+              <div class="step done"><strong>Understand</strong><span>Brake-disc intent extracted</span></div>
+              <div class="step done"><strong>Research</strong><span>Offline facts and assumptions</span></div>
+              <div class="step done"><strong>Plan</strong><span>Allowed operations only</span></div>
+              <div class="step done"><strong>Validate</strong><span>Static safety checks pass</span></div>
+              <div class="step pending"><strong>Run</strong><span>Needs SolidWorks approval</span></div>
+            </div>
+            <div class="grid-2">
+              <div class="table">
+                <div class="table-row"><b>Scenario</b><span>Brake disc</span></div>
+                <div class="table-row"><b>Units</b><span>Millimeters</span></div>
+                <div class="table-row"><b>Operations</b><span>sketch, circle, extrude, hole, pattern, fillet, chamfer, export</span></div>
+                <div class="table-row"><b>Warnings</b><span>Hole face selection and pattern helpers need SolidWorks runtime verification.</span></div>
+              </div>
+              <div class="table">
+                <div class="table-row"><b>Macro</b><span>SolidWorks VBA-style .bas</span></div>
+                <div class="table-row"><b>Security</b><span>No shell, network, delete, or hidden execution calls allowed.</span></div>
+                <div class="table-row"><b>Export</b><span>brake_disc.step</span></div>
+                <div class="table-row"><b>Next</b><span>Build add-in on Windows, run generated macro in SolidWorks.</span></div>
+              </div>
+            </div>
+          </section>
+          <section class="panel">
+            <div class="tabs">
+              <button class="tab active">Preview</button>
+              <button class="tab">Plan JSON</button>
+              <button class="tab">Macro</button>
+              <button class="tab">Coverage</button>
+            </div>
+            <pre>Operation Plan Preview
+
+1. Create top-plane sketch for brake disc rotor.
+2. Draw outer rotor circle, inner hub bore, and bolt circle reference.
+3. Extrude rotor thickness in millimeters.
+4. Cut five through holes on bolt circle.
+5. Apply circular pattern for repeated holes.
+6. Add edge fillets/chamfers where allowed.
+7. Export visible STEP file after user approval.
+
+Assumptions
+- Default rotor diameter: 280 mm.
+- Bolt hole count: 5.
+- Units: mm.
+- Macro is preview-only until SolidWorks runtime verification.
+
+Validation
+- Catalog commands: allowed.
+- Unsafe macro tokens: none detected.
+- Export filename: visible and simple.
+- Runtime status: pending SolidWorks test.</pre>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
+

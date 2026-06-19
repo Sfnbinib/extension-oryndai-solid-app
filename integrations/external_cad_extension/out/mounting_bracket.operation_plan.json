@@ -1,0 +1,88 @@
+{
+  "version": "0.1",
+  "name": "mounting_bracket",
+  "source": "deterministic_template",
+  "units": "mm",
+  "prompt": "Create a 160 x 38 x 6 mm mounting bracket with two M4 holes and 2 mm fillets.",
+  "assumptions": [
+    "M4 clearance hole diameter assumed 4.5 mm.",
+    "Hole centers assumed at +/-55 mm along the length.",
+    "All dimensions are in mm."
+  ],
+  "warnings": [],
+  "operations": [
+    {
+      "command": "sketch",
+      "id": "bracket_sketch",
+      "args": {
+        "plane": "Top"
+      },
+      "description": "Sketch bracket base"
+    },
+    {
+      "command": "rectangle",
+      "id": "bracket_rect",
+      "args": {
+        "center": {
+          "x": 0,
+          "y": 0
+        },
+        "width": 160,
+        "height": 38
+      },
+      "description": "160 x 38 mm base rectangle"
+    },
+    {
+      "command": "extrude",
+      "id": "bracket_body",
+      "args": {
+        "depth": 6
+      },
+      "description": "Extrude 6 mm thickness"
+    },
+    {
+      "command": "hole",
+      "id": "m4_hole_left",
+      "args": {
+        "center": {
+          "x": -55,
+          "y": 0
+        },
+        "diameter": 4.5,
+        "through_all": true
+      },
+      "description": "M4 clearance hole left"
+    },
+    {
+      "command": "hole",
+      "id": "m4_hole_right",
+      "args": {
+        "center": {
+          "x": 55,
+          "y": 0
+        },
+        "diameter": 4.5,
+        "through_all": true
+      },
+      "description": "M4 clearance hole right"
+    },
+    {
+      "command": "fillet",
+      "id": "bracket_fillets",
+      "args": {
+        "radius": 2,
+        "selection": "all_edges"
+      },
+      "description": "2 mm fillets"
+    },
+    {
+      "command": "export",
+      "id": "export_step",
+      "args": {
+        "format": "STEP",
+        "filename": "mounting_bracket.step"
+      },
+      "description": "Export editable STEP"
+    }
+  ]
+}

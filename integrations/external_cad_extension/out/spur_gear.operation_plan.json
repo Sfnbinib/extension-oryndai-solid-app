@@ -1,0 +1,88 @@
+{
+  "version": "0.1",
+  "name": "spur_gear",
+  "source": "deterministic_template",
+  "units": "mm",
+  "prompt": "Create a 24 tooth spur gear, module 2, thickness 8 mm, bore 8 mm.",
+  "assumptions": [
+    "Pitch diameter is module * teeth = 48 mm.",
+    "Outer diameter is pitch diameter + 2 * module = 52 mm.",
+    "The first prototype declares a tooth pattern but does not generate true involute geometry in VBA."
+  ],
+  "warnings": [
+    "Use a true involute tooth adapter before manufacturing or mating with real gears."
+  ],
+  "operations": [
+    {
+      "command": "sketch",
+      "id": "gear_blank_sketch",
+      "args": {
+        "plane": "Top"
+      },
+      "description": "Sketch simplified gear blank"
+    },
+    {
+      "command": "circle",
+      "id": "gear_outer",
+      "args": {
+        "center": {
+          "x": 0,
+          "y": 0
+        },
+        "radius": 26.0
+      },
+      "description": "Outer gear diameter"
+    },
+    {
+      "command": "extrude",
+      "id": "gear_body",
+      "args": {
+        "depth": 8
+      },
+      "description": "Extrude gear thickness"
+    },
+    {
+      "command": "hole",
+      "id": "gear_bore",
+      "args": {
+        "center": {
+          "x": 0,
+          "y": 0
+        },
+        "diameter": 8,
+        "through_all": true
+      },
+      "description": "Central bore"
+    },
+    {
+      "command": "pattern",
+      "id": "tooth_pattern",
+      "args": {
+        "pattern_type": "circular",
+        "count": 24,
+        "radius": 26.0,
+        "axis": "Z",
+        "target_ref": "gear_outer"
+      },
+      "description": "Declare tooth pattern for future involute generator"
+    },
+    {
+      "command": "chamfer",
+      "id": "tooth_edge_break",
+      "args": {
+        "distance": 0.4,
+        "selection": "tooth_edges"
+      },
+      "description": "Small edge break"
+    },
+    {
+      "command": "export",
+      "id": "export_step",
+      "args": {
+        "format": "STEP",
+        "filename": "spur_gear.step"
+      },
+      "description": "Export editable STEP"
+    }
+  ]
+}

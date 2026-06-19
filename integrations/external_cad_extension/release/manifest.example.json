@@ -1,0 +1,17 @@
+{
+  "product": "ORYND CAD Bridge",
+  "version": "0.1.0",
+  "channel": "stable",
+  "minimum_supported_version": "0.1.0",
+  "notes_url": "https://github.com/ORYND-AI/orynd-cad-bridge/releases/tag/v0.1.0",
+  "assets": [
+    {
+      "name": "ORYND-CAD-Bridge-Setup-0.1.0.exe",
+      "platform": "windows-x64",
+      "url": "https://github.com/ORYND-AI/orynd-cad-bridge/releases/download/v0.1.0/ORYND-CAD-Bridge-Setup-0.1.0.exe",
+      "sha256": "REPLACE_WITH_RELEASE_ASSET_SHA256",
+      "size_bytes": 0
+    }
+  ]
+}
+

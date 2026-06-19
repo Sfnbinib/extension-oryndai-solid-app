@@ -1,0 +1,696 @@
+{
+  "prompt": "Я хочу тормозной диск диаметром 280 мм с 5 отверстиями. Объясни как построить и сгенерируй макрос.",
+  "scenario": "brake_disc",
+  "stages": [
+    {
+      "name": "intent",
+      "status": "ok",
+      "summary": "Recognized object: brake_disc",
+      "data": {
+        "prompt": "Я хочу тормозной диск диаметром 280 мм с 5 отверстиями. Объясни как построить и сгенерируй макрос.",
+        "object_key": "brake_disc"
+      }
+    },
+    {
+      "name": "search_research",
+      "status": "offline_fallback",
+      "summary": "Built an offline research packet with search queries, facts, missing inputs, and CAD implications.",
+      "data": {
+        "object_key": "brake_disc",
+        "search_needed": true,
+        "search_queries": [
+          "brake disc rotor components center bore bolt pattern vented rotor",
+          "SolidWorks macro create disc holes circular pattern",
+          "brake disc simplified CAD geometry"
+        ],
+        "sources": [
+          {
+            "title": "Offline engineering knowledge: disc brake rotor",
+            "source_type": "offline_knowledge_base",
+            "summary": "A brake disc/rotor is a circular plate mounted to a hub, with a center bore and bolt pattern.",
+            "facts": [
+              "Rotor body is circular and usually modeled from an outer circle extruded to thickness.",
+              "The hub interface uses a center bore and equally spaced bolt holes.",
+              "Vented rotors contain air gaps or vane geometry between friction faces."
+            ]
+          },
+          {
+            "title": "Offline engineering knowledge: disc brake assembly",
+            "source_type": "offline_knowledge_base",
+            "summary": "A full brake assembly can also include a caliper that clamps around the rotor.",
+            "facts": [
+              "The caliper is a separate assembly component, not part of the rotor body.",
+              "A simplified caliper can be represented by a U-shaped bridge and mounting lugs.",
+              "Caliper placement needs clearance around the rotor edge."
+            ]
+          }
+        ],
+        "extracted_facts": [
+          "Primary geometry is a round rotor disc.",
+          "Required CAD features: base circle, extrusion, center bore, bolt-hole circle, edge finishing.",
+          "For a ventilated disc, first-pass macro can represent ventilation as an annular relief or repeated slots.",
+          "Bolt holes should be equally spaced around the center axis."
+        ],
+        "cad_implications": [
+          "Start with a Top-plane sketch and outer circle.",
+          "Extrude the sketch by rotor thickness.",
+          "Cut the center bore through all.",
+          "Cut bolt holes through all on a circular pattern.",
+          "Apply small fillets/chamfers to visible edges.",
+          "Export STEP for later CAD inspection."
+        ],
+        "missing_inputs": [
+          "Exact bolt circle diameter if the user does not provide it.",
+          "Exact bolt-hole diameter if the user does not provide it.",
+          "Vent vane pattern if a production-like vented rotor is required.",
+          "Whether a caliper should be generated; a brake disc request alone means rotor first."
+        ],
+        "confidence": 0.82
+      }
+    },
+    {
+      "name": "engineering_decomposition",
+      "status": "ok",
+      "summary": "A brake disc scenario decomposes into a circular rotor, center bore, bolt-hole pattern, ventilation relief, edge finishing, and optionally a separate caliper proxy.",
+      "data": {
+        "object_key": "brake_disc",
+        "summary": "A brake disc scenario decomposes into a circular rotor, center bore, bolt-hole pattern, ventilation relief, edge finishing, and optionally a separate caliper proxy.",
+        "components": [
+          {
+            "name": "rotor_disc",
+            "role": "main rotating brake disc body",
+            "cad_features": [
+              "outer circle",
+              "extrude thickness",
+              "edge fillet"
+            ],
+            "included_in_plan": true
+          },
+          {
+            "name": "center_bore",
+            "role": "hub alignment opening",
+            "cad_features": [
+              "through hole at origin"
+            ],
+            "included_in_plan": true
+          },
+          {
+            "name": "bolt_hole_pattern",
+            "role": "hub fastening holes",
+            "cad_features": [
+              "equally spaced through holes",
+              "circular pattern around Z axis"
+            ],
+            "included_in_plan": true
+          },
+          {
+            "name": "ventilation_relief",
+            "role": "first-pass representation of a vented rotor",
+            "cad_features": [
+              "annular cut or repeated vent cuts"
+            ],
+            "included_in_plan": true
+          },
+          {
+            "name": "caliper_proxy",
+            "role": "separate clamping/support component",
+            "cad_features": [
+              "bridge body",
+              "mounting lugs",
+              "mounting holes"
+            ],
+            "included_in_plan": false
+          }
+        ],
+        "construction_steps": [
+          {
+            "order": 1,
+            "intent": "Create rotor base sketch",
+            "operation_hint": "sketch + circle",
+            "rationale": "A rotor starts as a circular profile."
+          },
+          {
+            "order": 2,
+            "intent": "Create rotor solid",
+            "operation_hint": "extrude",
+            "rationale": "Rotor thickness is a straight extrusion from the base sketch."
+          },
+          {
+            "order": 3,
+            "intent": "Cut center bore",
+            "operation_hint": "hole",
+            "rationale": "The center bore is coaxial with the rotor axis."
+          },
+          {
+            "order": 4,
+            "intent": "Cut ventilation relief",
+            "operation_hint": "hole/cut",
+            "rationale": "Offline MVP uses a simplified annular cut/relief."
+          },
+          {
+            "order": 5,
+            "intent": "Cut bolt holes",
+            "operation_hint": "hole + circular pattern",
+            "rationale": "Bolt holes are equally spaced around the center."
+          },
+          {
+            "order": 6,
+            "intent": "Finish edges",
+            "operation_hint": "fillet/chamfer",
+            "rationale": "Small edge treatment improves the generated part."
+          },
+          {
+            "order": 7,
+            "intent": "Export editable CAD",
+            "operation_hint": "export STEP",
+            "rationale": "STEP is the target review/exchange format."
+          }
+        ],
+        "assumptions": [
+          "Dimensions default to the deterministic brake-disc demo when the prompt is underspecified.",
+          "Caliper geometry is generated only when explicitly requested.",
+          "Production vane geometry requires a stronger model/search adapter or CAD-specific surface routine."
+        ]
+      }
+    },
+    {
+      "name": "cad_operation_plan",
+      "status": "ok",
+      "summary": "Generated 13 constrained CAD operations.",
+      "data": {
+        "version": "0.1",
+        "name": "brake_disc",
+        "source": "deterministic_template",
+        "units": "mm",
+        "prompt": "Create a ventilated brake disc diameter 280 mm, thickness 28 mm, center bore 61 mm, 5 bolt holes.",
+        "assumptions": [
+          "All dimensions are in mm.",
+          "Bolt circle diameter assumed 115 mm because the prompt only specified 5 bolt holes.",
+          "Ventilation is represented as a simplified annular relief for the first offline prototype.",
+          "SolidWorks execution will require user approval after preview."
+        ],
+        "warnings": [
+          "This is a simplified parametric rotor, not a certified automotive brake component.",
+          "Thermal vanes and material constraints need research/model adapter support later."
+        ],
+        "operations": [
+          {
+            "command": "sketch",
+            "id": "disc_sketch",
+            "args": {
+              "plane": "Top"
+            },
+            "description": "Sketch rotor outer circle"
+          },
+          {
+            "command": "circle",
+            "id": "outer_disc",
+            "args": {
+              "center": {
+                "x": 0,
+                "y": 0
+              },
+              "radius": 140
+            },
+            "description": "Outer diameter 280 mm"
+          },
+          {
+            "command": "extrude",
+            "id": "disc_body",
+            "args": {
+              "depth": 28
+            },
+            "description": "Extrude rotor thickness"
+          },
+          {
+            "command": "hole",
+            "id": "center_bore",
+            "args": {
+              "center": {
+                "x": 0,
+                "y": 0
+              },
+              "diameter": 61,
+              "through_all": true
+            },
+            "description": "Center bore"
+          },
+          {
+            "command": "hole",
+            "id": "vent_inner",
+            "args": {
+              "center": {
+                "x": 0,
+                "y": 0
+              },
+              "diameter": 182,
+              "through_all": true
+            },
+            "description": "Simplified annular vent relief"
+          },
+          {
+            "command": "hole",
+            "id": "bolt_1",
+            "args": {
+              "center": {
+                "x": 57.5,
+                "y": 0.0
+              },
+              "diameter": 12,
+              "through_all": true
+            },
+            "description": "Through hole 1 on 115 mm bolt circle"
+          },
+          {
+            "command": "hole",
+            "id": "bolt_2",
+            "args": {
+              "center": {
+                "x": 17.768,
+                "y": 54.686
+              },
+              "diameter": 12,
+              "through_all": true
+            },
+            "description": "Through hole 2 on 115 mm bolt circle"
+          },
+          {
+            "command": "hole",
+            "id": "bolt_3",
+            "args": {
+              "center": {
+                "x": -46.518,
+                "y": 33.798
+              },
+              "diameter": 12,
+              "through_all": true
+            },
+            "description": "Through hole 3 on 115 mm bolt circle"
+          },
+          {
+            "command": "hole",
+            "id": "bolt_4",
+            "args": {
+              "center": {
+                "x": -46.518,
+                "y": -33.798
+              },
+              "diameter": 12,
+              "through_all": true
+            },
+            "description": "Through hole 4 on 115 mm bolt circle"
+          },
+          {
+            "command": "hole",
+            "id": "bolt_5",
+            "args": {
+              "center": {
+                "x": 17.768,
+                "y": -54.686
+              },
+              "diameter": 12,
+              "through_all": true
+            },
+            "description": "Through hole 5 on 115 mm bolt circle"
+          },
+          {
+            "command": "pattern",
+            "id": "bolt_pattern",
+            "args": {
+              "pattern_type": "circular",
+              "count": 5,
+              "radius": 57.5,
+              "axis": "Z",
+              "target_ref": "bolt_1"
+            },
+            "description": "Bolt-hole pattern declaration"
+          },
+          {
+            "command": "fillet",
+            "id": "edge_softening",
+            "args": {
+              "radius": 1.5,
+              "selection": "outer_edges"
+            },
+            "description": "Soften rotor edges"
+          },
+          {
+            "command": "export",
+            "id": "export_step",
+            "args": {
+              "format": "STEP",
+              "filename": "brake_disc.step"
+            },
+            "description": "Export editable STEP"
+          }
+        ],
+        "research_context": "object_key: brake_disc\nsearch_needed: True\nextracted_facts:\n- Primary geometry is a round rotor disc.\n- Required CAD features: base circle, extrusion, center bore, bolt-hole circle, edge finishing.\n- For a ventilated disc, first-pass macro can represent ventilation as an annular relief or repeated slots.\n- Bolt holes should be equally spaced around the center axis.\ncad_implications:\n- Start with a Top-plane sketch and outer circle.\n- Extrude the sketch by rotor thickness.\n- Cut the center bore through all.\n- Cut bolt holes through all on a circular pattern.\n- Apply small fillets/chamfers to visible edges.\n- Export STEP for later CAD inspection.\nmissing_inputs:\n- Exact bolt circle diameter if the user does not provide it.\n- Exact bolt-hole diameter if the user does not provide it.\n- Vent vane pattern if a production-like vented rotor is required.\n- Whether a caliper should be generated; a brake disc request alone means rotor first."
+      }
+    },
+    {
+      "name": "macro_generation",
+      "status": "ok",
+      "summary": "Generated SolidWorks VBA-style macro with 117 lines.",
+      "data": {
+        "macro_language": "solidworks_vba",
+        "line_count": 117
+      }
+    },
+    {
+      "name": "static_validation",
+      "status": "ok",
+      "summary": "Static validator checked catalog commands, dimensions, export path, and unsafe macro tokens.",
+      "data": {
+        "ok": true,
+        "errors": [],
+        "warnings": []
+      }
+    }
+  ],
+  "research": {
+    "object_key": "brake_disc",
+    "search_needed": true,
+    "search_queries": [
+      "brake disc rotor components center bore bolt pattern vented rotor",
+      "SolidWorks macro create disc holes circular pattern",
+      "brake disc simplified CAD geometry"
+    ],
+    "sources": [
+      {
+        "title": "Offline engineering knowledge: disc brake rotor",
+        "source_type": "offline_knowledge_base",
+        "summary": "A brake disc/rotor is a circular plate mounted to a hub, with a center bore and bolt pattern.",
+        "facts": [
+          "Rotor body is circular and usually modeled from an outer circle extruded to thickness.",
+          "The hub interface uses a center bore and equally spaced bolt holes.",
+          "Vented rotors contain air gaps or vane geometry between friction faces."
+        ]
+      },
+      {
+        "title": "Offline engineering knowledge: disc brake assembly",
+        "source_type": "offline_knowledge_base",
+        "summary": "A full brake assembly can also include a caliper that clamps around the rotor.",
+        "facts": [
+          "The caliper is a separate assembly component, not part of the rotor body.",
+          "A simplified caliper can be represented by a U-shaped bridge and mounting lugs.",
+          "Caliper placement needs clearance around the rotor edge."
+        ]
+      }
+    ],
+    "extracted_facts": [
+      "Primary geometry is a round rotor disc.",
+      "Required CAD features: base circle, extrusion, center bore, bolt-hole circle, edge finishing.",
+      "For a ventilated disc, first-pass macro can represent ventilation as an annular relief or repeated slots.",
+      "Bolt holes should be equally spaced around the center axis."
+    ],
+    "cad_implications": [
+      "Start with a Top-plane sketch and outer circle.",
+      "Extrude the sketch by rotor thickness.",
+      "Cut the center bore through all.",
+      "Cut bolt holes through all on a circular pattern.",
+      "Apply small fillets/chamfers to visible edges.",
+      "Export STEP for later CAD inspection."
+    ],
+    "missing_inputs": [
+      "Exact bolt circle diameter if the user does not provide it.",
+      "Exact bolt-hole diameter if the user does not provide it.",
+      "Vent vane pattern if a production-like vented rotor is required.",
+      "Whether a caliper should be generated; a brake disc request alone means rotor first."
+    ],
+    "confidence": 0.82
+  },
+  "decomposition": {
+    "object_key": "brake_disc",
+    "summary": "A brake disc scenario decomposes into a circular rotor, center bore, bolt-hole pattern, ventilation relief, edge finishing, and optionally a separate caliper proxy.",
+    "components": [
+      {
+        "name": "rotor_disc",
+        "role": "main rotating brake disc body",
+        "cad_features": [
+          "outer circle",
+          "extrude thickness",
+          "edge fillet"
+        ],
+        "included_in_plan": true
+      },
+      {
+        "name": "center_bore",
+        "role": "hub alignment opening",
+        "cad_features": [
+          "through hole at origin"
+        ],
+        "included_in_plan": true
+      },
+      {
+        "name": "bolt_hole_pattern",
+        "role": "hub fastening holes",
+        "cad_features": [
+          "equally spaced through holes",
+          "circular pattern around Z axis"
+        ],
+        "included_in_plan": true
+      },
+      {
+        "name": "ventilation_relief",
+        "role": "first-pass representation of a vented rotor",
+        "cad_features": [
+          "annular cut or repeated vent cuts"
+        ],
+        "included_in_plan": true
+      },
+      {
+        "name": "caliper_proxy",
+        "role": "separate clamping/support component",
+        "cad_features": [
+          "bridge body",
+          "mounting lugs",
+          "mounting holes"
+        ],
+        "included_in_plan": false
+      }
+    ],
+    "construction_steps": [
+      {
+        "order": 1,
+        "intent": "Create rotor base sketch",
+        "operation_hint": "sketch + circle",
+        "rationale": "A rotor starts as a circular profile."
+      },
+      {
+        "order": 2,
+        "intent": "Create rotor solid",
+        "operation_hint": "extrude",
+        "rationale": "Rotor thickness is a straight extrusion from the base sketch."
+      },
+      {
+        "order": 3,
+        "intent": "Cut center bore",
+        "operation_hint": "hole",
+        "rationale": "The center bore is coaxial with the rotor axis."
+      },
+      {
+        "order": 4,
+        "intent": "Cut ventilation relief",
+        "operation_hint": "hole/cut",
+        "rationale": "Offline MVP uses a simplified annular cut/relief."
+      },
+      {
+        "order": 5,
+        "intent": "Cut bolt holes",
+        "operation_hint": "hole + circular pattern",
+        "rationale": "Bolt holes are equally spaced around the center."
+      },
+      {
+        "order": 6,
+        "intent": "Finish edges",
+        "operation_hint": "fillet/chamfer",
+        "rationale": "Small edge treatment improves the generated part."
+      },
+      {
+        "order": 7,
+        "intent": "Export editable CAD",
+        "operation_hint": "export STEP",
+        "rationale": "STEP is the target review/exchange format."
+      }
+    ],
+    "assumptions": [
+      "Dimensions default to the deterministic brake-disc demo when the prompt is underspecified.",
+      "Caliper geometry is generated only when explicitly requested.",
+      "Production vane geometry requires a stronger model/search adapter or CAD-specific surface routine."
+    ]
+  },
+  "operation_plan": {
+    "version": "0.1",
+    "name": "brake_disc",
+    "source": "deterministic_template",
+    "units": "mm",
+    "prompt": "Create a ventilated brake disc diameter 280 mm, thickness 28 mm, center bore 61 mm, 5 bolt holes.",
+    "assumptions": [
+      "All dimensions are in mm.",
+      "Bolt circle diameter assumed 115 mm because the prompt only specified 5 bolt holes.",
+      "Ventilation is represented as a simplified annular relief for the first offline prototype.",
+      "SolidWorks execution will require user approval after preview."
+    ],
+    "warnings": [
+      "This is a simplified parametric rotor, not a certified automotive brake component.",
+      "Thermal vanes and material constraints need research/model adapter support later."
+    ],
+    "operations": [
+      {
+        "command": "sketch",
+        "id": "disc_sketch",
+        "args": {
+          "plane": "Top"
+        },
+        "description": "Sketch rotor outer circle"
+      },
+      {
+        "command": "circle",
+        "id": "outer_disc",
+        "args": {
+          "center": {
+            "x": 0,
+            "y": 0
+          },
+          "radius": 140
+        },
+        "description": "Outer diameter 280 mm"
+      },
+      {
+        "command": "extrude",
+        "id": "disc_body",
+        "args": {
+          "depth": 28
+        },
+        "description": "Extrude rotor thickness"
+      },
+      {
+        "command": "hole",
+        "id": "center_bore",
+        "args": {
+          "center": {
+            "x": 0,
+            "y": 0
+          },
+          "diameter": 61,
+          "through_all": true
+        },
+        "description": "Center bore"
+      },
+      {
+        "command": "hole",
+        "id": "vent_inner",
+        "args": {
+          "center": {
+            "x": 0,
+            "y": 0
+          },
+          "diameter": 182,
+          "through_all": true
+        },
+        "description": "Simplified annular vent relief"
+      },
+      {
+        "command": "hole",
+        "id": "bolt_1",
+        "args": {
+          "center": {
+            "x": 57.5,
+            "y": 0.0
+          },
+          "diameter": 12,
+          "through_all": true
+        },
+        "description": "Through hole 1 on 115 mm bolt circle"
+      },
+      {
+        "command": "hole",
+        "id": "bolt_2",
+        "args": {
+          "center": {
+            "x": 17.768,
+            "y": 54.686
+          },
+          "diameter": 12,
+          "through_all": true
+        },
+        "description": "Through hole 2 on 115 mm bolt circle"
+      },
+      {
+        "command": "hole",
+        "id": "bolt_3",
+        "args": {
+          "center": {
+            "x": -46.518,
+            "y": 33.798
+          },
+          "diameter": 12,
+          "through_all": true
+        },
+        "description": "Through hole 3 on 115 mm bolt circle"
+      },
+      {
+        "command": "hole",
+        "id": "bolt_4",
+        "args": {
+          "center": {
+            "x": -46.518,
+            "y": -33.798
+          },
+          "diameter": 12,
+          "through_all": true
+        },
+        "description": "Through hole 4 on 115 mm bolt circle"
+      },
+      {
+        "command": "hole",
+        "id": "bolt_5",
+        "args": {
+          "center": {
+            "x": 17.768,
+            "y": -54.686
+          },
+          "diameter": 12,
+          "through_all": true
+        },
+        "description": "Through hole 5 on 115 mm bolt circle"
+      },
+      {
+        "command": "pattern",
+        "id": "bolt_pattern",
+        "args": {
+          "pattern_type": "circular",
+          "count": 5,
+          "radius": 57.5,
+          "axis": "Z",
+          "target_ref": "bolt_1"
+        },
+        "description": "Bolt-hole pattern declaration"
+      },
+      {
+        "command": "fillet",
+        "id": "edge_softening",
+        "args": {
+          "radius": 1.5,
+          "selection": "outer_edges"
+        },
+        "description": "Soften rotor edges"
+      },
+      {
+        "command": "export",
+        "id": "export_step",
+        "args": {
+          "format": "STEP",
+          "filename": "brake_disc.step"
+        },
+        "description": "Export editable STEP"
+      }
+    ],
+    "research_context": "object_key: brake_disc\nsearch_needed: True\nextracted_facts:\n- Primary geometry is a round rotor disc.\n- Required CAD features: base circle, extrusion, center bore, bolt-hole circle, edge finishing.\n- For a ventilated disc, first-pass macro can represent ventilation as an annular relief or repeated slots.\n- Bolt holes should be equally spaced around the center axis.\ncad_implications:\n- Start with a Top-plane sketch and outer circle.\n- Extrude the sketch by rotor thickness.\n- Cut the center bore through all.\n- Cut bolt holes through all on a circular pattern.\n- Apply small fillets/chamfers to visible edges.\n- Export STEP for later CAD inspection.\nmissing_inputs:\n- Exact bolt circle diameter if the user does not provide it.\n- Exact bolt-hole diameter if the user does not provide it.\n- Vent vane pattern if a production-like vented rotor is required.\n- Whether a caliper should be generated; a brake disc request alone means rotor first."
+  },
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "warnings": []
+  }
+}
