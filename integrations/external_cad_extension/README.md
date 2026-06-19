@@ -478,6 +478,7 @@ helpers. Real server-side enforcement and payment callbacks are not done.
 - `PRODUCT_FOUNDATION.md`
 - `STATUS_AND_GAPS.md`
 - `E2E_QA_REPORT_2026-06-19.md`
+- `SCENARIO_ORCHESTRATION_MAP.md`
 - `UI_AND_CHAT_IMPLEMENTATION_PROMPTS.md`
 - `SOLIDWORKS_ADDIN_UI_PLAN.md`
 - `SOLIDWORKS_FORMATS.md`
