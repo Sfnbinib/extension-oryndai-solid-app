@@ -1,5 +1,5 @@
 {
-  "prompt": "Я хочу тормозной диск диаметром 280 мм с 5 отверстиями. Объясни как построить и сгенерируй макрос.",
+  "prompt": "I want a brake disc.",
   "scenario": "brake_disc",
   "stages": [
     {
@@ -7,7 +7,7 @@
       "status": "ok",
       "summary": "Recognized object: brake_disc",
       "data": {
-        "prompt": "Я хочу тормозной диск диаметром 280 мм с 5 отверстиями. Объясни как построить и сгенерируй макрос.",
+        "prompt": "I want a brake disc.",
         "object_key": "brake_disc"
       }
     },
@@ -350,10 +350,10 @@
     {
       "name": "macro_generation",
       "status": "ok",
-      "summary": "Generated SolidWorks VBA-style macro with 117 lines.",
+      "summary": "Generated SolidWorks VBA-style macro with 146 lines.",
       "data": {
         "macro_language": "solidworks_vba",
-        "line_count": 117
+        "line_count": 146
       }
     },
     {

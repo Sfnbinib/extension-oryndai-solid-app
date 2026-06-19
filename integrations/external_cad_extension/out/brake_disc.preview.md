@@ -44,6 +44,7 @@ Option Explicit
 
 Dim swApp As Object
 Dim swModel As Object
+Dim cadBridgeCurrentPlaneName As String
 
 Sub main()
     Set swApp = Application.SldWorks
@@ -82,13 +83,23 @@ Sub main()
     ORYND_Export swModel, "STEP", "brake_disc.step"
 End Sub
 
+Private Function CadBridge_SelectPlane(ByVal model As Object, ByVal planeName As String) As Boolean
+    model.ClearSelection2 True
+    CadBridge_SelectPlane = False
+    If planeName = "Front" Then CadBridge_SelectPlane = model.Extension.SelectByID2("Front Plane", "PLANE", 0, 0, 0, False, 0, Nothing, 0)
+    If planeName = "Top" Then CadBridge_SelectPlane = model.Extension.SelectByID2("Top Plane", "PLANE", 0, 0, 0, False, 0, Nothing, 0)
+    If planeName = "Right" Then CadBridge_SelectPlane = model.Extension.SelectByID2("Right Plane", "PLANE", 0, 0, 0, False, 0, Nothing, 0)
+End Function
+
 Private Sub ORYND_CreateSketch(ByVal model As Object, ByVal planeName As String)
     Dim ok As Boolean
-    ok = False
-    If planeName = "Front" Then ok = model.Extension.SelectByID2("Front Plane", "PLANE", 0, 0, 0, False, 0, Nothing, 0)
-    If planeName = "Top" Then ok = model.Extension.SelectByID2("Top Plane", "PLANE", 0, 0, 0, False, 0, Nothing, 0)
-    If planeName = "Right" Then ok = model.Extension.SelectByID2("Right Plane", "PLANE", 0, 0, 0, False, 0, Nothing, 0)
-    If ok Then model.SketchManager.InsertSketch True
+    ok = CadBridge_SelectPlane(model, planeName)
+    If ok Then
+        cadBridgeCurrentPlaneName = planeName
+        model.SketchManager.InsertSketch True
+    Else
+        MsgBox "ORYND could not select sketch plane: " & planeName
+    End If
 End Sub
 
 Private Sub ORYND_Circle(ByVal model As Object, ByVal x As Double, ByVal y As Double, ByVal radius As Double)
@@ -102,8 +113,18 @@ Private Sub ORYND_Rectangle(ByVal model As Object, ByVal x As Double, ByVal y As
     model.SketchManager.CreateCenterRectangle x, y, 0#, x2, y2, 0#
 End Sub
 
+Private Sub ORYND_Line(ByVal model As Object, ByVal x1 As Double, ByVal y1 As Double, ByVal x2 As Double, ByVal y2 As Double)
+    model.SketchManager.CreateLine x1, y1, 0#, x2, y2, 0#
+End Sub
+
 Private Sub ORYND_Extrude(ByVal model As Object, ByVal depth As Double, ByVal symmetric As Boolean)
-    model.FeatureManager.FeatureExtrusion2 True, False, False, 0, 0, depth, depth, False, False, False, False, 0#, 0#, False, False, False, False, True, True, True, 0, 0, False
+    model.ClearSelection2 False
+    If symmetric Then
+        model.FeatureManager.FeatureExtrusion2 True, False, False, 0, 0, depth / 2#, depth / 2#, False, False, False, False, 0#, 0#, False, False, False, False, True, True, True, 0, 0, False
+    Else
+        model.FeatureManager.FeatureExtrusion2 True, False, False, 0, 0, depth, 0#, False, False, False, False, 0#, 0#, False, False, False, False, True, True, True, 0, 0, False
+    End If
+    model.EditRebuild3
 End Sub
 
 Private Sub ORYND_Revolve(ByVal model As Object, ByVal axisName As String, ByVal angleDeg As Double)
@@ -112,15 +133,23 @@ Private Sub ORYND_Revolve(ByVal model As Object, ByVal axisName As String, ByVal
 End Sub
 
 Private Sub ORYND_Cut(ByVal model As Object, ByVal depth As Double, ByVal throughAll As Boolean)
+    model.ClearSelection2 False
     If throughAll Then
         model.FeatureManager.FeatureCut4 True, False, False, 1, 1, depth, depth, False, False, False, False, 0#, 0#, False, False, False, False, False, True, True, True, True, False, 0, 0, False, False
     Else
         model.FeatureManager.FeatureCut4 True, False, False, 0, 0, depth, depth, False, False, False, False, 0#, 0#, False, False, False, False, False, True, True, True, True, False, 0, 0, False, False
     End If
+    model.EditRebuild3
 End Sub
 
 Private Sub ORYND_Hole(ByVal model As Object, ByVal x As Double, ByVal y As Double, ByVal diameter As Double, ByVal throughAll As Boolean, ByVal depth As Double)
-    model.Extension.SelectByID2 "", "FACE", 0, 0, 0, False, 0, Nothing, 0
+    Dim planeName As String
+    planeName = cadBridgeCurrentPlaneName
+    If planeName = "" Then planeName = "Top"
+    If Not CadBridge_SelectPlane(model, planeName) Then
+        MsgBox "ORYND could not select hole sketch plane: " & planeName
+        Exit Sub
+    End If
     model.SketchManager.InsertSketch True
     model.SketchManager.CreateCircleByRadius x, y, 0#, diameter / 2#
     If throughAll Then

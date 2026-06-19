@@ -45,6 +45,10 @@ def _point2(args: dict[str, Any]) -> tuple[Any, Any]:
     return point.get("x", 0), point.get("y", 0)
 
 
+def _xy(point: dict[str, Any]) -> tuple[Any, Any]:
+    return point.get("x", 0), point.get("y", 0)
+
+
 def _emit_operation(op: Operation) -> str:
     command = op.command
     args = op.args
@@ -62,6 +66,10 @@ def _emit_operation(op: Operation) -> str:
             f"    ORYND_Rectangle swModel, {_num(x)}, {_num(y)}, "
             f"{_num(args['width'])}, {_num(args['height'])}"
         )
+    if command == "line":
+        x1, y1 = _xy(args["start"])
+        x2, y2 = _xy(args["end"])
+        return f"    ORYND_Line swModel, {_num(x1)}, {_num(y1)}, {_num(x2)}, {_num(y2)}"
     if command == "extrude":
         return f"    ORYND_Extrude swModel, {_num(args['depth'])}, {_bool(args.get('symmetric', False))}"
     if command == "revolve":
@@ -105,6 +113,7 @@ def emit_solidworks_vba(plan: OperationPlan) -> str:
         "",
         "Dim swApp As Object",
         "Dim swModel As Object",
+        "Dim cadBridgeCurrentPlaneName As String",
         "",
         "Sub main()",
         "    Set swApp = Application.SldWorks",
@@ -125,13 +134,23 @@ def emit_solidworks_vba(plan: OperationPlan) -> str:
 
 
 def _helper_code() -> str:
-    return r'''Private Sub ORYND_CreateSketch(ByVal model As Object, ByVal planeName As String)
+    return r'''Private Function CadBridge_SelectPlane(ByVal model As Object, ByVal planeName As String) As Boolean
+    model.ClearSelection2 True
+    CadBridge_SelectPlane = False
+    If planeName = "Front" Then CadBridge_SelectPlane = model.Extension.SelectByID2("Front Plane", "PLANE", 0, 0, 0, False, 0, Nothing, 0)
+    If planeName = "Top" Then CadBridge_SelectPlane = model.Extension.SelectByID2("Top Plane", "PLANE", 0, 0, 0, False, 0, Nothing, 0)
+    If planeName = "Right" Then CadBridge_SelectPlane = model.Extension.SelectByID2("Right Plane", "PLANE", 0, 0, 0, False, 0, Nothing, 0)
+End Function
+
+Private Sub ORYND_CreateSketch(ByVal model As Object, ByVal planeName As String)
     Dim ok As Boolean
-    ok = False
-    If planeName = "Front" Then ok = model.Extension.SelectByID2("Front Plane", "PLANE", 0, 0, 0, False, 0, Nothing, 0)
-    If planeName = "Top" Then ok = model.Extension.SelectByID2("Top Plane", "PLANE", 0, 0, 0, False, 0, Nothing, 0)
-    If planeName = "Right" Then ok = model.Extension.SelectByID2("Right Plane", "PLANE", 0, 0, 0, False, 0, Nothing, 0)
-    If ok Then model.SketchManager.InsertSketch True
+    ok = CadBridge_SelectPlane(model, planeName)
+    If ok Then
+        cadBridgeCurrentPlaneName = planeName
+        model.SketchManager.InsertSketch True
+    Else
+        MsgBox "ORYND could not select sketch plane: " & planeName
+    End If
 End Sub
 
 Private Sub ORYND_Circle(ByVal model As Object, ByVal x As Double, ByVal y As Double, ByVal radius As Double)
@@ -145,8 +164,18 @@ Private Sub ORYND_Rectangle(ByVal model As Object, ByVal x As Double, ByVal y As
     model.SketchManager.CreateCenterRectangle x, y, 0#, x2, y2, 0#
 End Sub
 
+Private Sub ORYND_Line(ByVal model As Object, ByVal x1 As Double, ByVal y1 As Double, ByVal x2 As Double, ByVal y2 As Double)
+    model.SketchManager.CreateLine x1, y1, 0#, x2, y2, 0#
+End Sub
+
 Private Sub ORYND_Extrude(ByVal model As Object, ByVal depth As Double, ByVal symmetric As Boolean)
-    model.FeatureManager.FeatureExtrusion2 True, False, False, 0, 0, depth, depth, False, False, False, False, 0#, 0#, False, False, False, False, True, True, True, 0, 0, False
+    model.ClearSelection2 False
+    If symmetric Then
+        model.FeatureManager.FeatureExtrusion2 True, False, False, 0, 0, depth / 2#, depth / 2#, False, False, False, False, 0#, 0#, False, False, False, False, True, True, True, 0, 0, False
+    Else
+        model.FeatureManager.FeatureExtrusion2 True, False, False, 0, 0, depth, 0#, False, False, False, False, 0#, 0#, False, False, False, False, True, True, True, 0, 0, False
+    End If
+    model.EditRebuild3
 End Sub
 
 Private Sub ORYND_Revolve(ByVal model As Object, ByVal axisName As String, ByVal angleDeg As Double)
@@ -155,15 +184,23 @@ Private Sub ORYND_Revolve(ByVal model As Object, ByVal axisName As String, ByVal
 End Sub
 
 Private Sub ORYND_Cut(ByVal model As Object, ByVal depth As Double, ByVal throughAll As Boolean)
+    model.ClearSelection2 False
     If throughAll Then
         model.FeatureManager.FeatureCut4 True, False, False, 1, 1, depth, depth, False, False, False, False, 0#, 0#, False, False, False, False, False, True, True, True, True, False, 0, 0, False, False
     Else
         model.FeatureManager.FeatureCut4 True, False, False, 0, 0, depth, depth, False, False, False, False, 0#, 0#, False, False, False, False, False, True, True, True, True, False, 0, 0, False, False
     End If
+    model.EditRebuild3
 End Sub
 
 Private Sub ORYND_Hole(ByVal model As Object, ByVal x As Double, ByVal y As Double, ByVal diameter As Double, ByVal throughAll As Boolean, ByVal depth As Double)
-    model.Extension.SelectByID2 "", "FACE", 0, 0, 0, False, 0, Nothing, 0
+    Dim planeName As String
+    planeName = cadBridgeCurrentPlaneName
+    If planeName = "" Then planeName = "Top"
+    If Not CadBridge_SelectPlane(model, planeName) Then
+        MsgBox "ORYND could not select hole sketch plane: " & planeName
+        Exit Sub
+    End If
     model.SketchManager.InsertSketch True
     model.SketchManager.CreateCircleByRadius x, y, 0#, diameter / 2#
     If throughAll Then
@@ -197,4 +234,3 @@ Private Sub ORYND_Export(ByVal model As Object, ByVal formatName As String, ByVa
     ' SaveAs3 writes only the explicit user-visible export filename generated in the preview.
     model.SaveAs3 fileName, 0, 2
 End Sub'''
-

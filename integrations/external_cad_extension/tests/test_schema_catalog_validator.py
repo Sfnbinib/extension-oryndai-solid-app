@@ -14,6 +14,7 @@ def test_catalog_contains_required_commands():
         "sketch",
         "circle",
         "rectangle",
+        "line",
         "extrude",
         "revolve",
         "cut",
@@ -27,6 +28,7 @@ def test_catalog_contains_required_commands():
     assert required.issubset(COMMAND_CATALOG)
     exported = catalog_as_dict()
     assert exported["hole"]["target_macro_call"] == "ORYND_Hole"
+    assert exported["line"]["target_macro_call"] == "ORYND_Line"
 
 
 def test_plan_roundtrip_and_validation():
@@ -75,3 +77,19 @@ def test_generated_mounting_bracket_passes_full_validation():
     assert "ORYND_Rectangle" in macro
     assert "ORYND_Export" in macro
 
+
+def test_line_operation_emits_catalog_macro_call():
+    plan = OperationPlan(
+        name="line_smoke",
+        prompt="draw one line",
+        assumptions=["Line smoke test uses millimeters."],
+        operations=[
+            Operation("sketch", "sketch_top", {"plane": "Top"}),
+            Operation("line", "profile_edge", {"start": {"x": 0, "y": 0}, "end": {"x": 25, "y": 0}}),
+            Operation("export", "export_step", {"format": "STEP", "filename": "line_smoke.step"}),
+        ],
+    )
+    macro = emit_solidworks_vba(plan)
+    report = validate_generation(plan, macro)
+    assert report.ok, report.to_dict()
+    assert "ORYND_Line swModel" in macro

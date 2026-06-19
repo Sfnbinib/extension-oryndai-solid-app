@@ -64,6 +64,15 @@ COMMAND_CATALOG: dict[str, CommandSpec] = {
         ),
         target_macro_call="ORYND_Rectangle",
     ),
+    "line": CommandSpec(
+        name="line",
+        description="Add a straight line segment to the active sketch.",
+        args=(
+            ArgumentSpec("start", "point2"),
+            ArgumentSpec("end", "point2"),
+        ),
+        target_macro_call="ORYND_Line",
+    ),
     "extrude": CommandSpec(
         name="extrude",
         description="Extrude the active sketch into a solid feature.",
@@ -197,4 +206,3 @@ def catalog_as_dict() -> dict[str, dict[str, Any]]:
         }
         for name, spec in COMMAND_CATALOG.items()
     }
-

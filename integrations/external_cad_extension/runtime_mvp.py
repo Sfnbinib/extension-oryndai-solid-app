@@ -44,7 +44,7 @@ RUNTIME_MVP_COMMANDS: tuple[RuntimeMvpCommand, ...] = (
         "draw_circle_rectangle_line",
         "Brake discs, brackets, hubs, plates, and many profiles need basic sketch geometry.",
         "Circle, rectangle, and line appear in feature tree/sketch.",
-        "circle_rectangle_scaffolded_line_missing",
+        "scaffolded_not_verified",
     ),
     RuntimeMvpCommand(
         "extrude_boss",
@@ -120,4 +120,3 @@ def render_runtime_mvp_markdown() -> str:
         ]
     )
     return "\n".join(lines) + "\n"
-
