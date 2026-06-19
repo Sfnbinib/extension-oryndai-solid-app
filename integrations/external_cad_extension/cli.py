@@ -135,12 +135,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--prompt", help="Engineering prompt. Uses deterministic matching in this prototype.")
     parser.add_argument(
         "--planner",
-        choices=("deterministic", "ollama"),
+        choices=("deterministic", "ollama", "anthropic", "openai"),
         default="deterministic",
-        help="Planner backend. Ollama requires a running local Ollama server.",
+        help="Planner backend. Ollama requires a local server; hosted planners require API key env vars.",
     )
     parser.add_argument("--ollama-url", default="http://localhost:11434", help="Ollama base URL.")
     parser.add_argument("--ollama-model", default="llama3.2:3b", help="Ollama model name.")
+    parser.add_argument("--api-key-env", default=None, help="Environment variable name for hosted planner API key.")
+    parser.add_argument("--hosted-model", default=None, help="Hosted model override for Anthropic/OpenAI planners.")
     parser.add_argument(
         "--out-dir",
         default="integrations/external_cad_extension/out",
@@ -301,7 +303,13 @@ def main(argv: list[str] | None = None) -> int:
             research_context=args.research_context,
             image_context=args.image_context,
             mesh_context=args.mesh_context,
-            planner=planner_from_name(args.planner, ollama_url=args.ollama_url, ollama_model=args.ollama_model),
+            planner=planner_from_name(
+                args.planner,
+                ollama_url=args.ollama_url,
+                ollama_model=args.ollama_model,
+                api_key_env=args.api_key_env,
+                hosted_model=args.hosted_model,
+            ),
         )
         validation = validate_generation(result.plan, result.macro_code)
 

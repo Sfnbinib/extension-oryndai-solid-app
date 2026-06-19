@@ -353,6 +353,27 @@ Use optional Ollama planner if a local Ollama server is running:
   --prompt "Create a 160 x 38 x 6 mm mounting bracket with two M4 holes"
 ```
 
+Use hosted BYO-key planner routes:
+
+```bash
+export ANTHROPIC_API_KEY="..."
+.venv/bin/python -m integrations.external_cad_extension.cli \
+  --planner anthropic \
+  --hosted-model claude-opus-4-1-20250805 \
+  --prompt "Create a 160 x 38 x 6 mm mounting bracket with two M4 holes"
+```
+
+```bash
+export OPENAI_API_KEY="..."
+.venv/bin/python -m integrations.external_cad_extension.cli \
+  --planner openai \
+  --hosted-model gpt-5.2 \
+  --prompt "Create a 160 x 38 x 6 mm mounting bracket with two M4 holes"
+```
+
+Hosted planners must still return `OperationPlan` JSON and pass the normal
+validator before any macro preview is considered usable.
+
 Convert supported AI Model 4 primitives:
 
 ```bash
