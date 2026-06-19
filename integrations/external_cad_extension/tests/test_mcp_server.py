@@ -22,6 +22,7 @@ def test_mcp_initialize_and_tools_list_direct():
         "solidworks_coverage",
         "solidworks_language",
         "object_recipes",
+        "runtime_mvp",
         "gencad_status",
     }.issubset(names)
 

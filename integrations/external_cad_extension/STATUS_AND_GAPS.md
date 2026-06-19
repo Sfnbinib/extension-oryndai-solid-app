@@ -33,6 +33,7 @@ Implemented:
 - GitHub release/update manifest helpers;
 - Mac/Windows installation reality documented;
 - hard depth audit documented in `DEPTH_AUDIT.md`;
+- runtime MVP command profile documented for smooth first demo;
 - CLI artifact generation;
 - unit/golden tests;
 - generated artifacts for brake disc, spur gear, F1 front wing, and mounting bracket.
@@ -94,6 +95,7 @@ This is not yet:
 | Operation schema with sketch/circle/rectangle/extrude/revolve/cut/hole/pattern/fillet/chamfer/mate/export | Implemented as catalog | Some operations are declarations/placeholders at macro-helper level. |
 | Full SolidWorks command file with all tools | Scaffolded extraction | Catalog has required MVP categories; Windows-only `tools/solidworks_api_inventory` can extract raw API inventory from installed SolidWorks interop assemblies. Raw methods still need safe allowlist mappings. |
 | Planner-facing SolidWorks language | Implemented expanded map | `solidworks_command_language.py` provides 70+ commands with groups/API hints/runtime statuses. Most are not executable yet. |
+| Runtime MVP focus | Implemented profile | `runtime_mvp.py` narrows first real SolidWorks proof to 5-10 reliable actions instead of chasing every command. |
 | Object construction recipes | Implemented first set | `object_recipes.py` gives clarifying questions and construction strategies for common demos. Needs more recipes and model planner integration. |
 | SolidWorks runtime coverage | Implemented checklist | `solidworks-coverage` reports which helpers need runtime verification and which are placeholders/weak areas. |
 | Deterministic demo examples | Implemented | 4 examples generate artifacts and pass static validation. |

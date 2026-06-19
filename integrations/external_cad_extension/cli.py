@@ -20,6 +20,7 @@ from .orchestrator import render_scenario_markdown, run_scenario
 from .object_recipes import recipes_as_dict, render_recipes_markdown
 from .preview import render_preview_markdown
 from .release_manifest import CURRENT_VERSION, asset_from_file, fetch_manifest, load_manifest, update_status
+from .runtime_mvp import render_runtime_mvp_markdown, runtime_mvp_as_dict
 from .settings import (
     configure_model_key,
     entitlement_gate,
@@ -82,6 +83,10 @@ def build_parser() -> argparse.ArgumentParser:
     recipes = subparsers.add_parser("object-recipes", help="Show CAD object construction recipes for planners.")
     recipes.add_argument("--format", choices=("json", "markdown"), default="json")
     recipes.add_argument("--out", default=None)
+
+    runtime_mvp = subparsers.add_parser("runtime-mvp", help="Show the small command set that must work smoothly first.")
+    runtime_mvp.add_argument("--format", choices=("json", "markdown"), default="json")
+    runtime_mvp.add_argument("--out", default=None)
 
     update_check = subparsers.add_parser("update-check", help="Check local or remote ORYND CAD Bridge release manifest.")
     update_source = update_check.add_mutually_exclusive_group(required=True)
@@ -219,6 +224,17 @@ def main(argv: list[str] | None = None) -> int:
                 print(text)
         else:
             _print_json({"recipes": recipes_as_dict()})
+        return 0
+    if args.command == "runtime-mvp":
+        if args.format == "markdown":
+            text = render_runtime_mvp_markdown()
+            if args.out:
+                Path(args.out).write_text(text, encoding="utf-8")
+                print(f"wrote: {args.out}")
+            else:
+                print(text)
+        else:
+            _print_json(runtime_mvp_as_dict())
         return 0
     if args.command == "update-check":
         if args.manifest_file:

@@ -27,6 +27,7 @@ from .generator import generate
 from .object_recipes import recipes_as_dict, render_recipes_markdown
 from .orchestrator import render_scenario_markdown, run_scenario
 from .preview import render_preview_markdown
+from .runtime_mvp import render_runtime_mvp_markdown, runtime_mvp_as_dict
 from .settings import entitlement_gate, load_settings
 from .solidworks_coverage import render_solidworks_runtime_checklist, solidworks_coverage_matrix
 from .solidworks_command_language import language_as_dict, language_by_group, render_language_markdown
@@ -130,6 +131,11 @@ TOOLS: dict[str, dict[str, Any]] = {
     "object_recipes": {
         "name": "object_recipes",
         "description": "Return construction recipes and clarifying questions for common CAD objects.",
+        "inputSchema": _schema({"include_markdown": {"type": "boolean", "default": False}}),
+    },
+    "runtime_mvp": {
+        "name": "runtime_mvp",
+        "description": "Return the small command set that must work smoothly in real SolidWorks first.",
         "inputSchema": _schema({"include_markdown": {"type": "boolean", "default": False}}),
     },
     "gencad_status": {
@@ -247,6 +253,13 @@ def _tool_object_recipes(args: dict[str, Any]) -> dict[str, Any]:
     return _content_json(payload)
 
 
+def _tool_runtime_mvp(args: dict[str, Any]) -> dict[str, Any]:
+    payload = runtime_mvp_as_dict()
+    if args.get("include_markdown", False):
+        payload["markdown"] = render_runtime_mvp_markdown()
+    return _content_json(payload)
+
+
 def _tool_gencad_status(args: dict[str, Any]) -> dict[str, Any]:
     repo_path = Path(args["repo_path"]) if args.get("repo_path") else Path("integrations/GenCAD")
     return _content_json(gencad_status(GenCADConfig(repo_path=repo_path)).to_dict())
@@ -280,6 +293,7 @@ TOOL_HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "solidworks_coverage": _tool_solidworks_coverage,
     "solidworks_language": _tool_solidworks_language,
     "object_recipes": _tool_object_recipes,
+    "runtime_mvp": _tool_runtime_mvp,
     "gencad_status": _tool_gencad_status,
     "ai4_primitives_to_plan": _tool_ai4_primitives_to_plan,
 }

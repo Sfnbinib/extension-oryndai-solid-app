@@ -27,6 +27,7 @@ Strongest areas:
 - standalone GitHub package;
 - SolidWorks add-in/Task Pane scaffold;
 - update/release scaffolding.
+- explicit runtime MVP focus for the first smooth SolidWorks demo.
 
 Weakest areas:
 
@@ -252,3 +253,12 @@ The highest-risk missing piece is not UI. It is:
 ```text
 fuller SolidWorks command language + runtime-verified execution + model planner repair loop
 ```
+
+After the MecAgent comparison, the first execution target is deliberately
+smaller:
+
+```text
+create part -> sketch -> circle/rectangle/line -> extrude -> cut -> repeat/pattern -> fillet/chamfer -> export STEP
+```
+
+These few commands must feel smooth before broader command coverage matters.

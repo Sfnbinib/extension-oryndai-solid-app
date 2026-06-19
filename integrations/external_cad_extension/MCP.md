@@ -29,6 +29,7 @@ Available tools:
 - `solidworks_coverage`
 - `solidworks_language`
 - `object_recipes`
+- `runtime_mvp`
 - `gencad_status`
 - `ai4_primitives_to_plan`
 
