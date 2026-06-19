@@ -26,6 +26,8 @@ Implemented:
 - SolidWorks COM add-in scaffold for Windows-side extension work;
 - Windows-only SolidWorks API inventory extractor scaffold;
 - SolidWorks command taxonomy for expanding the allowlist safely;
+- expanded planner-facing SolidWorks command language pack;
+- CAD object recipes for brake disc, F1 front wing, spur gear, mounting bracket, engine assembly;
 - SolidWorks runtime coverage matrix/checklist;
 - product foundation corrected to SolidWorks Task Pane + local bridge;
 - GitHub release/update manifest helpers;
@@ -91,6 +93,8 @@ This is not yet:
 | Validate result/export/open in CAD | Static validation only | No SolidWorks runtime validation. |
 | Operation schema with sketch/circle/rectangle/extrude/revolve/cut/hole/pattern/fillet/chamfer/mate/export | Implemented as catalog | Some operations are declarations/placeholders at macro-helper level. |
 | Full SolidWorks command file with all tools | Scaffolded extraction | Catalog has required MVP categories; Windows-only `tools/solidworks_api_inventory` can extract raw API inventory from installed SolidWorks interop assemblies. Raw methods still need safe allowlist mappings. |
+| Planner-facing SolidWorks language | Implemented expanded map | `solidworks_command_language.py` provides 70+ commands with groups/API hints/runtime statuses. Most are not executable yet. |
+| Object construction recipes | Implemented first set | `object_recipes.py` gives clarifying questions and construction strategies for common demos. Needs more recipes and model planner integration. |
 | SolidWorks runtime coverage | Implemented checklist | `solidworks-coverage` reports which helpers need runtime verification and which are placeholders/weak areas. |
 | Deterministic demo examples | Implemented | 4 examples generate artifacts and pass static validation. |
 | Brake-disc scenario pipeline | Implemented offline | CLI can write `.scenario.json` and `.scenario.md` with intent, research packet, decomposition, plan, macro, validation. |

@@ -27,6 +27,8 @@ Available tools:
 - `supabase_status`
 - `supabase_check`
 - `solidworks_coverage`
+- `solidworks_language`
+- `object_recipes`
 - `gencad_status`
 - `ai4_primitives_to_plan`
 

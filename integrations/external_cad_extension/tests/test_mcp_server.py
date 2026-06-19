@@ -20,6 +20,8 @@ def test_mcp_initialize_and_tools_list_direct():
         "supabase_status",
         "supabase_check",
         "solidworks_coverage",
+        "solidworks_language",
+        "object_recipes",
         "gencad_status",
     }.issubset(names)
 

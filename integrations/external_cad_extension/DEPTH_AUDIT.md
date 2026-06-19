@@ -47,6 +47,7 @@ Weakest areas:
 | Mac support | 3 | `MAC_AND_WINDOWS_INSTALLATION.md` | Clarified: native Mac is companion-only; real SolidWorks add-in needs Windows/Parallels. |
 | Operation schema | 3 | `schema.py`, tests | Good MVP schema. Needs richer assembly, selection, references, constraints, drawings, materials. |
 | Command catalog | 2 | `catalog.py` has 12 operations | This is not the full SolidWorks command language. It is a small allowlist. |
+| Planner command language | 3 | `solidworks_command_language.py` has expanded planner-facing command map | Not all commands are executable yet; it is a language pack with runtime statuses. |
 | Full SolidWorks API inventory | 2 | `tools/solidworks_api_inventory/` | Extractor scaffold exists, but has not run against installed SolidWorks interop assemblies. |
 | Macro emitter | 2 | `solidworks_vba.py` | Emits preview `.bas`; several helpers are placeholders or weak. |
 | SolidWorks runtime coverage | 2 | `solidworks_coverage.py`, `out/solidworks_runtime_checklist.md` | Checklist exists, but no command is runtime-verified. |
@@ -76,6 +77,16 @@ sketch, circle, rectangle, extrude, revolve, cut, hole, pattern, fillet, chamfer
 ```
 
 This is not enough for the original goal.
+
+Expanded planner language:
+
+```text
+solidworks_command_language.py
+```
+
+This now covers document, selection, sketch geometry, sketch edit, relations,
+dimensions, solid features, holes, patterns, surfaces, assemblies, drawings,
+exports, properties, and analysis. It is planner-facing, not all executable.
 
 Missing major groups:
 
@@ -129,6 +140,10 @@ short command list. It needs a constrained "CAD language pack":
 8. runtime feedback from SolidWorks.
 
 Current prototype has only items 1, part of 2, and part of 7.
+
+Update: the prototype now has a broader planner-facing language pack and common
+object recipes, but still lacks runtime mappings and repair feedback for most
+commands.
 
 ## Required Deepening Order
 
@@ -237,4 +252,3 @@ The highest-risk missing piece is not UI. It is:
 ```text
 fuller SolidWorks command language + runtime-verified execution + model planner repair loop
 ```
-

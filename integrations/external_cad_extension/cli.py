@@ -17,6 +17,7 @@ from .env_config import load_supabase_config
 from .generator import generate, planner_from_name
 from .gencad_adapter import GenCADConfig, gencad_status, run_gencad_inference
 from .orchestrator import render_scenario_markdown, run_scenario
+from .object_recipes import recipes_as_dict, render_recipes_markdown
 from .preview import render_preview_markdown
 from .release_manifest import CURRENT_VERSION, asset_from_file, fetch_manifest, load_manifest, update_status
 from .settings import (
@@ -29,6 +30,7 @@ from .settings import (
 )
 from .solidworks_vba import emit_solidworks_vba
 from .solidworks_coverage import render_solidworks_runtime_checklist, solidworks_coverage_matrix, write_solidworks_runtime_checklist
+from .solidworks_command_language import language_as_dict, language_by_group, render_language_markdown
 from .supabase_client import default_supabase_client
 from .validator import validate_generation
 
@@ -71,6 +73,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     sw_coverage = subparsers.add_parser("solidworks-coverage", help="Show SolidWorks command runtime coverage matrix.")
     sw_coverage.add_argument("--out", default=None, help="Optional markdown output path.")
+
+    sw_language = subparsers.add_parser("solidworks-language", help="Show expanded planner command language.")
+    sw_language.add_argument("--format", choices=("json", "markdown"), default="json")
+    sw_language.add_argument("--grouped", action="store_true")
+    sw_language.add_argument("--out", default=None)
+
+    recipes = subparsers.add_parser("object-recipes", help="Show CAD object construction recipes for planners.")
+    recipes.add_argument("--format", choices=("json", "markdown"), default="json")
+    recipes.add_argument("--out", default=None)
 
     update_check = subparsers.add_parser("update-check", help="Check local or remote ORYND CAD Bridge release manifest.")
     update_source = update_check.add_mutually_exclusive_group(required=True)
@@ -186,6 +197,28 @@ def main(argv: list[str] | None = None) -> int:
             print(f"wrote: {args.out}")
         else:
             _print_json({"coverage": [item.to_dict() for item in solidworks_coverage_matrix()]})
+        return 0
+    if args.command == "solidworks-language":
+        if args.format == "markdown":
+            text = render_language_markdown()
+            if args.out:
+                Path(args.out).write_text(text, encoding="utf-8")
+                print(f"wrote: {args.out}")
+            else:
+                print(text)
+        else:
+            _print_json({"groups": language_by_group()} if args.grouped else {"commands": language_as_dict()})
+        return 0
+    if args.command == "object-recipes":
+        if args.format == "markdown":
+            text = render_recipes_markdown()
+            if args.out:
+                Path(args.out).write_text(text, encoding="utf-8")
+                print(f"wrote: {args.out}")
+            else:
+                print(text)
+        else:
+            _print_json({"recipes": recipes_as_dict()})
         return 0
     if args.command == "update-check":
         if args.manifest_file:

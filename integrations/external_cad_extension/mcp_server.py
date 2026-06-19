@@ -24,10 +24,12 @@ from .ai_model_4_adapter import primitives_to_operation_plan
 from .env_config import load_supabase_config
 from .gencad_adapter import GenCADConfig, gencad_status
 from .generator import generate
+from .object_recipes import recipes_as_dict, render_recipes_markdown
 from .orchestrator import render_scenario_markdown, run_scenario
 from .preview import render_preview_markdown
 from .settings import entitlement_gate, load_settings
 from .solidworks_coverage import render_solidworks_runtime_checklist, solidworks_coverage_matrix
+from .solidworks_command_language import language_as_dict, language_by_group, render_language_markdown
 from .supabase_client import default_supabase_client
 from .validator import validate_generation, validate_macro_text
 
@@ -113,6 +115,21 @@ TOOLS: dict[str, dict[str, Any]] = {
     "solidworks_coverage": {
         "name": "solidworks_coverage",
         "description": "Return SolidWorks command runtime verification coverage and checklist.",
+        "inputSchema": _schema({"include_markdown": {"type": "boolean", "default": False}}),
+    },
+    "solidworks_language": {
+        "name": "solidworks_language",
+        "description": "Return expanded planner-facing SolidWorks command language with runtime statuses.",
+        "inputSchema": _schema(
+            {
+                "grouped": {"type": "boolean", "default": True},
+                "include_markdown": {"type": "boolean", "default": False},
+            }
+        ),
+    },
+    "object_recipes": {
+        "name": "object_recipes",
+        "description": "Return construction recipes and clarifying questions for common CAD objects.",
         "inputSchema": _schema({"include_markdown": {"type": "boolean", "default": False}}),
     },
     "gencad_status": {
@@ -216,6 +233,20 @@ def _tool_solidworks_coverage(args: dict[str, Any]) -> dict[str, Any]:
     return _content_json(payload)
 
 
+def _tool_solidworks_language(args: dict[str, Any]) -> dict[str, Any]:
+    payload: dict[str, Any] = {"groups": language_by_group()} if args.get("grouped", True) else {"commands": language_as_dict()}
+    if args.get("include_markdown", False):
+        payload["markdown"] = render_language_markdown()
+    return _content_json(payload)
+
+
+def _tool_object_recipes(args: dict[str, Any]) -> dict[str, Any]:
+    payload: dict[str, Any] = {"recipes": recipes_as_dict()}
+    if args.get("include_markdown", False):
+        payload["markdown"] = render_recipes_markdown()
+    return _content_json(payload)
+
+
 def _tool_gencad_status(args: dict[str, Any]) -> dict[str, Any]:
     repo_path = Path(args["repo_path"]) if args.get("repo_path") else Path("integrations/GenCAD")
     return _content_json(gencad_status(GenCADConfig(repo_path=repo_path)).to_dict())
@@ -247,6 +278,8 @@ TOOL_HANDLERS: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {
     "supabase_status": _tool_supabase_status,
     "supabase_check": _tool_supabase_check,
     "solidworks_coverage": _tool_solidworks_coverage,
+    "solidworks_language": _tool_solidworks_language,
+    "object_recipes": _tool_object_recipes,
     "gencad_status": _tool_gencad_status,
     "ai4_primitives_to_plan": _tool_ai4_primitives_to_plan,
 }
