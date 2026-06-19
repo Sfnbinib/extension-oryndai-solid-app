@@ -88,6 +88,13 @@ def build_parser() -> argparse.ArgumentParser:
     runtime_mvp.add_argument("--format", choices=("json", "markdown"), default="json")
     runtime_mvp.add_argument("--out", default=None)
 
+    smoke_package = subparsers.add_parser(
+        "solidworks-smoke-package",
+        help="Write a minimal SolidWorks runtime QA package for the mounting bracket MVP.",
+    )
+    smoke_package.add_argument("--example", choices=("mounting_bracket", "brake_disc"), default="mounting_bracket")
+    smoke_package.add_argument("--out-dir", default="integrations/external_cad_extension/out/solidworks_smoke_package")
+
     update_check = subparsers.add_parser("update-check", help="Check local or remote ORYND CAD Bridge release manifest.")
     update_source = update_check.add_mutually_exclusive_group(required=True)
     update_source.add_argument("--manifest-file")
@@ -236,6 +243,10 @@ def main(argv: list[str] | None = None) -> int:
         else:
             _print_json(runtime_mvp_as_dict())
         return 0
+    if args.command == "solidworks-smoke-package":
+        report = write_solidworks_smoke_package(example=args.example, out_dir=Path(args.out_dir))
+        _print_json(report)
+        return 0 if report["validation"]["ok"] else 2
     if args.command == "update-check":
         if args.manifest_file:
             manifest = load_manifest(Path(args.manifest_file))
@@ -339,6 +350,76 @@ def _write_adapter_artifacts(plan, out_dir: Path):
     (out_dir / f"{stem}.validation.json").write_text(json.dumps(validation.to_dict(), indent=2), encoding="utf-8")
     (out_dir / f"{stem}.preview.md").write_text(render_preview_markdown(plan, macro_code, validation.to_dict()), encoding="utf-8")
     return validation
+
+
+def write_solidworks_smoke_package(*, example: str, out_dir: Path) -> dict:
+    result = generate(example=example)
+    validation = validate_generation(result.plan, result.macro_code)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stem = result.plan.name
+
+    plan_path = out_dir / f"{stem}.operation_plan.json"
+    macro_path = out_dir / f"{stem}.solidworks.bas"
+    validation_path = out_dir / f"{stem}.validation.json"
+    preview_path = out_dir / f"{stem}.preview.md"
+    readme_path = out_dir / "README_SOLIDWORKS_SMOKE_TEST.md"
+
+    plan_path.write_text(json.dumps(result.plan.to_dict(), indent=2, ensure_ascii=False), encoding="utf-8")
+    macro_path.write_text(result.macro_code, encoding="utf-8")
+    validation_path.write_text(json.dumps(validation.to_dict(), indent=2, ensure_ascii=False), encoding="utf-8")
+    preview_path.write_text(render_preview_markdown(result.plan, result.macro_code, validation.to_dict()), encoding="utf-8")
+    readme_path.write_text(_render_smoke_package_readme(stem, validation.ok), encoding="utf-8")
+
+    return {
+        "ok": validation.ok,
+        "example": stem,
+        "out_dir": str(out_dir),
+        "artifacts": {
+            "plan": str(plan_path),
+            "macro": str(macro_path),
+            "validation": str(validation_path),
+            "preview": str(preview_path),
+            "readme": str(readme_path),
+        },
+        "validation": validation.to_dict(),
+        "solidworks_runtime_status": "not_verified",
+    }
+
+
+def _render_smoke_package_readme(example: str, validation_ok: bool) -> str:
+    return f"""# ORYND CAD Bridge SolidWorks Smoke Package
+
+Example: `{example}`
+
+Static validation ok: `{str(validation_ok).lower()}`
+
+This package is for Windows/SolidWorks runtime QA. It does not prove runtime by
+itself; it gives the tester the exact generated artifacts to inspect and run in a
+controlled SolidWorks session.
+
+Files:
+
+- `{example}.operation_plan.json` - constrained CAD operation plan.
+- `{example}.solidworks.bas` - generated SolidWorks VBA-style macro preview.
+- `{example}.validation.json` - static validation report.
+- `{example}.preview.md` - human-readable plan, assumptions, validation, code.
+
+Required manual QA:
+
+1. Start SolidWorks on Windows.
+2. Inspect `{example}.preview.md`.
+3. Confirm `{example}.validation.json` has no errors.
+4. Open/recreate the macro in SolidWorks macro editor if needed.
+5. Run only after manual review.
+6. Confirm:
+   - part is created;
+   - expected sketch/features appear;
+   - rebuild succeeds;
+   - STEP export succeeds.
+
+Do not mark this scenario `runtime_verified` until it creates the expected model
+inside real desktop SolidWorks.
+"""
 
 
 if __name__ == "__main__":

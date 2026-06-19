@@ -142,6 +142,28 @@ Expected:
 
 This still means the bridge is reachable. Entitlement is local prototype state.
 
+## Optional: Generate A Manual Smoke Package
+
+Before running the add-in, prepare a minimal package for manual SolidWorks QA:
+
+```powershell
+python -m integrations.external_cad_extension.cli solidworks-smoke-package `
+  --example mounting_bracket `
+  --out-dir .\out\solidworks_smoke_package
+```
+
+The package contains:
+
+```text
+mounting_bracket.operation_plan.json
+mounting_bracket.solidworks.bas
+mounting_bracket.validation.json
+mounting_bracket.preview.md
+README_SOLIDWORKS_SMOKE_TEST.md
+```
+
+Use this package when testing the first runtime MVP manually in SolidWorks.
+
 ## Step 3: Preflight The Windows Add-in Environment
 
 From:

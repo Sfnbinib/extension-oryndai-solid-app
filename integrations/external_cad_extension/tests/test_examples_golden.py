@@ -55,3 +55,28 @@ def test_cli_writes_four_expected_files(tmp_path):
     assert "ORYND_Hole" in macro_path.read_text(encoding="utf-8")
     assert "Macro Preview: brake_disc" in preview_path.read_text(encoding="utf-8")
 
+
+def test_cli_writes_solidworks_smoke_package(tmp_path):
+    cmd = [
+        sys.executable,
+        "-m",
+        "integrations.external_cad_extension.cli",
+        "solidworks-smoke-package",
+        "--example",
+        "mounting_bracket",
+        "--out-dir",
+        str(tmp_path),
+    ]
+    completed = subprocess.run(cmd, check=False, capture_output=True, text=True)
+    assert completed.returncode == 0, completed.stderr + completed.stdout
+
+    payload = json.loads(completed.stdout)
+    assert payload["ok"] is True
+    assert payload["solidworks_runtime_status"] == "not_verified"
+    assert (tmp_path / "mounting_bracket.operation_plan.json").exists()
+    assert (tmp_path / "mounting_bracket.solidworks.bas").exists()
+    assert (tmp_path / "mounting_bracket.validation.json").exists()
+    assert (tmp_path / "mounting_bracket.preview.md").exists()
+    readme = (tmp_path / "README_SOLIDWORKS_SMOKE_TEST.md").read_text(encoding="utf-8")
+    assert "Required manual QA" in readme
+    assert "runtime_verified" in readme
