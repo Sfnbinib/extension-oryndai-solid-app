@@ -19,6 +19,8 @@ Implemented here:
 - COM-visible add-in class implementing the SolidWorks add-in lifecycle;
 - COM-visible right-side Task Pane control scaffold;
 - local bridge HTTP client;
+- visible approval gate with runtime execution intentionally locked;
+- preview JSON save action for Windows smoke tests;
 - registration script template;
 - manifest describing the extension package.
 
@@ -72,7 +74,9 @@ python -m integrations.external_cad_extension.web_app
 3. Enable `ORYND CAD Bridge` in SolidWorks Add-Ins.
 4. Open the right-side SolidWorks Task Pane and select `ORYND CAD Bridge`.
 5. Enter prompt in the task pane and generate a preview through the local bridge.
-6. Review generated operation plan and macro before any execution path is added.
+6. Review generated operation plan and macro.
+7. Save preview JSON for manual inspection if needed.
+8. Confirm that `Approve & Run` is visible but intentionally disabled from real execution until runtime QA passes.
 
 This matches the target pattern shown by tools such as MecAgent: a SolidWorks
 add-in owns a docked right-side panel, while backend/model work happens in a

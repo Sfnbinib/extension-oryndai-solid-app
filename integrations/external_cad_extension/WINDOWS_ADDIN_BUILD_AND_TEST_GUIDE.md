@@ -272,6 +272,8 @@ Expected result:
 - task pane stays open;
 - local bridge receives request;
 - preview JSON/text appears;
+- `Save Preview JSON` writes the last preview to `%TEMP%\ORYND_CAD_Bridge\last_preview.json`;
+- `Approve & Run` is visible but reports that execution is disabled in this scaffold;
 - no SolidWorks crash;
 - no macro is executed yet.
 
@@ -285,6 +287,8 @@ Pass means:
 - Task Pane appears;
 - Task Pane can call local bridge;
 - generated preview appears;
+- preview JSON can be saved;
+- approval gate is visible and does not execute yet;
 - SolidWorks remains stable.
 
 Fail means:

@@ -8,6 +8,7 @@ def test_solidworks_addin_scaffold_files_exist():
     expected = [
         "README.md",
         "manifest.json",
+        "Preflight-ORYNDCADBridgeAddin.ps1",
         "Register-ORYNDCADBridgeAddin.ps1",
         "Unregister-ORYNDCADBridgeAddin.ps1",
         "ORYNDCadBridgeAddin/ORYNDCadBridgeAddin.csproj",
@@ -45,4 +46,16 @@ def test_solidworks_addin_has_taskpane_control_scaffold():
     assert "ORYND.CadBridge.TaskPaneControl" in addin
     assert "UserControl" in control
     assert "Generate Preview" in control
+    assert "Approve & Run" in control
+    assert "Save Preview JSON" in control
+    assert "Runtime execution is disabled in this scaffold" in control
     assert "CadBridgeTaskPaneControl.cs" in project
+
+
+def test_solidworks_addin_preflight_checks_windows_dependencies():
+    preflight = (ADDIN_ROOT / "Preflight-ORYNDCADBridgeAddin.ps1").read_text(encoding="utf-8")
+    assert "SolidWorks.Interop.sldworks.dll" in preflight
+    assert "SolidWorks.Interop.swconst.dll" in preflight
+    assert "SolidWorks.Interop.swpublished.dll" in preflight
+    assert "MSBuild.exe" in preflight
+    assert "RegAsm.exe" in preflight
