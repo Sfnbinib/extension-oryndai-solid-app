@@ -86,3 +86,10 @@ def test_mac_windows_installation_doc_exists():
     assert "Windows add-in" in doc
     assert "Parallels" in doc
     assert "Companion" in doc
+
+
+def test_depth_audit_calls_out_command_gap():
+    doc = (ROOT / "DEPTH_AUDIT.md").read_text(encoding="utf-8")
+    assert "This is not enough for the original goal" in doc
+    assert "fuller SolidWorks command language" in doc
+    assert "Runtime Minimum" in doc

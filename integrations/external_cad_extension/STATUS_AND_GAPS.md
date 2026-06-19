@@ -30,6 +30,7 @@ Implemented:
 - product foundation corrected to SolidWorks Task Pane + local bridge;
 - GitHub release/update manifest helpers;
 - Mac/Windows installation reality documented;
+- hard depth audit documented in `DEPTH_AUDIT.md`;
 - CLI artifact generation;
 - unit/golden tests;
 - generated artifacts for brake disc, spur gear, F1 front wing, and mounting bracket.
