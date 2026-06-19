@@ -481,6 +481,7 @@ helpers. Real server-side enforcement and payment callbacks are not done.
 - `SCENARIO_ORCHESTRATION_MAP.md`
 - `UI_AND_CHAT_IMPLEMENTATION_PROMPTS.md`
 - `SOLIDWORKS_ADDIN_UI_PLAN.md`
+- `WINDOWS_ADDIN_BUILD_AND_TEST_GUIDE.md`
 - `SOLIDWORKS_FORMATS.md`
 - `MCP.md`
 - `DEPTH_AUDIT.md`

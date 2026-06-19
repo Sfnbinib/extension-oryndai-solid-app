@@ -78,6 +78,30 @@ This matches the target pattern shown by tools such as MecAgent: a SolidWorks
 add-in owns a docked right-side panel, while backend/model work happens in a
 local or remote service behind it.
 
+## Mac Reality
+
+This add-in target is for desktop SolidWorks on Windows. Native macOS can run the
+Python bridge, companion preview, and tests, but it cannot verify the COM/.NET
+SolidWorks Task Pane add-in.
+
+Mac owner-testing path:
+
+```text
+Mac -> Parallels/Windows VM -> desktop SolidWorks -> ORYND Windows add-in
+```
+
+Use the full build/test guide before trying the add-in on Windows:
+
+```text
+../WINDOWS_ADDIN_BUILD_AND_TEST_GUIDE.md
+```
+
+Preflight script:
+
+```powershell
+.\Preflight-ORYNDCADBridgeAddin.ps1
+```
+
 ## Security Boundary
 
 The add-in should stay thin:
