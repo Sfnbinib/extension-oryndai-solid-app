@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from .catalog import COMMAND_CATALOG, UNSAFE_MACRO_TOKENS
-from .schema import OperationPlan, is_non_negative_number, is_positive_number
+from .schema import Operation, OperationPlan, is_non_negative_number
 
 
 @dataclass
@@ -27,6 +27,11 @@ class ValidationReport:
 def validate_plan(plan: OperationPlan) -> ValidationReport:
     errors: list[str] = []
     warnings: list[str] = []
+    previous_ops: dict[str, Operation] = {}
+    active_sketch = False
+    active_profiles: list[dict[str, Any]] = []
+    has_solid = False
+    body_profiles: list[dict[str, Any]] = []
     if plan.units != "mm":
         errors.append(f"Unsupported units {plan.units!r}; only 'mm' is allowed.")
     if not plan.assumptions:
@@ -70,10 +75,164 @@ def validate_plan(plan: OperationPlan) -> ValidationReport:
             filename = str(op.args.get("filename", ""))
             if "/" in filename or "\\" in filename or ".." in filename:
                 errors.append(f"{path} export.filename must be a simple visible filename, got {filename!r}.")
-        if op.command == "pattern" and op.args.get("target_ref") not in seen_ids:
-            warnings.append(f"{path} pattern target_ref {op.args.get('target_ref')!r} is a declaration, not a prior op id.")
+        _validate_operation_order(
+            path=path,
+            op=op,
+            active_sketch=active_sketch,
+            has_profile=bool(active_profiles),
+            has_solid=has_solid,
+            errors=errors,
+        )
+        _validate_geometry(
+            path=path,
+            op=op,
+            body_profiles=body_profiles,
+            previous_ops=previous_ops,
+            errors=errors,
+            warnings=warnings,
+        )
+
+        if op.command == "sketch":
+            active_sketch = True
+            active_profiles = []
+        elif op.command in {"circle", "rectangle", "line"}:
+            active_profiles.extend(_profile_from_operation(op))
+        elif op.command in {"extrude", "revolve"}:
+            if active_profiles:
+                body_profiles = list(active_profiles)
+            has_solid = True
+            active_sketch = False
+            active_profiles = []
+        elif op.command == "cut":
+            active_sketch = False
+            active_profiles = []
+
+        previous_ops[op.id] = op
 
     return ValidationReport(ok=not errors, errors=errors, warnings=warnings)
+
+
+def _validate_operation_order(
+    *,
+    path: str,
+    op: Operation,
+    active_sketch: bool,
+    has_profile: bool,
+    has_solid: bool,
+    errors: list[str],
+) -> None:
+    if op.command in {"circle", "rectangle", "line"} and not active_sketch:
+        errors.append(f"{path} {op.command}: requires an active sketch before sketch geometry.")
+    if op.command in {"extrude", "revolve"}:
+        if not active_sketch:
+            errors.append(f"{path} {op.command}: requires an active sketch.")
+        if not has_profile:
+            errors.append(f"{path} {op.command}: requires sketch geometry before feature creation.")
+    if op.command in {"cut", "hole", "fillet", "chamfer"} and not has_solid:
+        errors.append(f"{path} {op.command}: requires a solid body created by an earlier feature.")
+    if op.command == "export" and not has_solid:
+        errors.append(f"{path} export: requires a solid body before export.")
+
+
+def _validate_geometry(
+    *,
+    path: str,
+    op: Operation,
+    body_profiles: list[dict[str, Any]],
+    previous_ops: dict[str, Operation],
+    errors: list[str],
+    warnings: list[str],
+) -> None:
+    if op.command == "hole" and body_profiles:
+        center = op.args.get("center", {})
+        diameter = op.args.get("diameter", 0)
+        if _is_point2(center) and isinstance(diameter, (int, float)) and not isinstance(diameter, bool):
+            if not any(_hole_fits_profile(center, float(diameter), profile) for profile in body_profiles):
+                errors.append(
+                    f"{path} hole: center {center!r} with diameter {diameter!r} does not fit inside known solid profile."
+                )
+
+    if op.command != "pattern":
+        return
+
+    target_ref = op.args.get("target_ref")
+    if target_ref not in previous_ops:
+        errors.append(f"{path} pattern target_ref {target_ref!r} must reference an earlier operation id.")
+        return
+
+    if op.args.get("pattern_type") != "circular":
+        return
+
+    if "radius" not in op.args:
+        errors.append(f"{path} circular pattern requires radius.")
+        return
+
+    target = previous_ops[target_ref]
+    radius = op.args.get("radius")
+    if not isinstance(radius, (int, float)) or isinstance(radius, bool):
+        return
+
+    if target.command == "hole":
+        center = target.args.get("center", {})
+        if _is_point2(center):
+            target_radius = (float(center["x"]) ** 2 + float(center["y"]) ** 2) ** 0.5
+            if abs(target_radius - float(radius)) > 0.5:
+                errors.append(
+                    f"{path} circular pattern radius {radius!r} does not match target hole radius "
+                    f"{target_radius:.3f} mm."
+                )
+    elif target.command in {"circle", "rectangle", "line"}:
+        warnings.append(
+            f"{path} pattern target_ref {target_ref!r} references sketch geometry; runtime add-in must map it to a feature."
+        )
+
+
+def _profile_from_operation(op: Operation) -> list[dict[str, Any]]:
+    if op.command == "circle":
+        center = op.args.get("center", {})
+        radius = op.args.get("radius")
+        if _is_point2(center) and isinstance(radius, (int, float)) and not isinstance(radius, bool):
+            return [{"type": "circle", "center": dict(center), "radius": float(radius)}]
+    if op.command == "rectangle":
+        center = op.args.get("center", {})
+        width = op.args.get("width")
+        height = op.args.get("height")
+        if (
+            _is_point2(center)
+            and isinstance(width, (int, float))
+            and not isinstance(width, bool)
+            and isinstance(height, (int, float))
+            and not isinstance(height, bool)
+        ):
+            return [{"type": "rectangle", "center": dict(center), "width": float(width), "height": float(height)}]
+    return []
+
+
+def _is_point2(value: Any) -> bool:
+    return (
+        isinstance(value, dict)
+        and isinstance(value.get("x"), (int, float))
+        and not isinstance(value.get("x"), bool)
+        and isinstance(value.get("y"), (int, float))
+        and not isinstance(value.get("y"), bool)
+    )
+
+
+def _hole_fits_profile(center: dict[str, Any], diameter: float, profile: dict[str, Any]) -> bool:
+    hole_radius = diameter / 2.0
+    if profile.get("type") == "circle":
+        profile_center = profile["center"]
+        dx = float(center["x"]) - float(profile_center["x"])
+        dy = float(center["y"]) - float(profile_center["y"])
+        return (dx * dx + dy * dy) ** 0.5 + hole_radius <= float(profile["radius"]) + 1e-6
+    if profile.get("type") == "rectangle":
+        profile_center = profile["center"]
+        dx = abs(float(center["x"]) - float(profile_center["x"]))
+        dy = abs(float(center["y"]) - float(profile_center["y"]))
+        return dx + hole_radius <= float(profile["width"]) / 2.0 + 1e-6 and dy + hole_radius <= float(
+            profile["height"]
+        ) / 2.0 + 1e-6
+    return True
 
 
 def _validate_arg(
@@ -143,4 +302,3 @@ def validate_generation(plan: OperationPlan, macro_code: str) -> ValidationRepor
         errors=plan_report.errors + macro_report.errors,
         warnings=plan_report.warnings + macro_report.warnings,
     )
-
