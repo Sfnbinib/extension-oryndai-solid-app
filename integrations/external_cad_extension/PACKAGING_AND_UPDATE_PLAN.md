@@ -19,6 +19,16 @@ The installer should include:
 - updater metadata;
 - uninstall script.
 
+For macOS, ship a separate companion package only:
+
+```text
+ORYND-CAD-Bridge-Companion-x.y.z.dmg
+```
+
+The macOS package is not a native SolidWorks add-in. It is for local bridge,
+MCP, previews, and demos. SolidWorks add-in testing on a Mac should happen
+inside Windows running in a supported virtual environment such as Parallels.
+
 It should not include:
 
 - GenCAD model checkpoints;
@@ -102,8 +112,7 @@ First practical test should be:
 2. Package local bridge as a Windows executable.
 3. Create installer.
 4. Publish GitHub release.
-5. Download/install on second machine.
-6. Open SolidWorks.
+5. Download/install on second Windows machine or Windows VM on Mac.
+6. Open SolidWorks inside Windows.
 7. Enable ORYND CAD Bridge add-in.
 8. Generate brake-disc preview from the right-side Task Pane.
-

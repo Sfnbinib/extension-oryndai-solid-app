@@ -79,3 +79,10 @@ def test_packaging_update_plan_exists():
     assert "GitHub Release" in plan
     assert "update-check" in plan
     assert manifest.exists()
+
+
+def test_mac_windows_installation_doc_exists():
+    doc = (ROOT / "MAC_AND_WINDOWS_INSTALLATION.md").read_text(encoding="utf-8")
+    assert "Windows add-in" in doc
+    assert "Parallels" in doc
+    assert "Companion" in doc

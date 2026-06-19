@@ -88,6 +88,15 @@ First usable build:
 GitHub release -> Windows installer -> SolidWorks add-in + local bridge
 ```
 
+Mac owner-testing path:
+
+```text
+Mac -> Parallels/Windows VM -> SolidWorks for Windows -> ORYND Windows installer
+```
+
+Native macOS can run a companion/demo build, but not the SolidWorks Task Pane
+add-in.
+
 Updates:
 
 ```text
@@ -121,4 +130,3 @@ ORYND should market concrete workflows, not generic "AI for CAD":
 - validate and export STEP;
 - ask engineering question with sources;
 - turn model into drawing package.
-

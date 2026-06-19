@@ -29,6 +29,7 @@ Implemented:
 - SolidWorks runtime coverage matrix/checklist;
 - product foundation corrected to SolidWorks Task Pane + local bridge;
 - GitHub release/update manifest helpers;
+- Mac/Windows installation reality documented;
 - CLI artifact generation;
 - unit/golden tests;
 - generated artifacts for brake disc, spur gear, F1 front wing, and mounting bracket.
@@ -104,6 +105,7 @@ This is not yet:
 | Extension design/UI | Partial, needs SolidWorks-native direction | Static companion preview exists, but production UI should be SolidWorks CommandManager/task pane/PropertyManagerPage, not a standalone web dashboard. |
 | Publish/install format | Not done | Needs target decision: macro pack, companion app, or SolidWorks add-in. |
 | GitHub release/update flow | Scaffolded | Release manifest, update-check CLI, and packaging plan exist. No installer build yet. |
+| macOS support | Companion only | Native SolidWorks add-in target is Windows. On Mac, test through Windows in Parallels/VM, or run companion/demo tooling only. |
 
 ## Key Technical Risks
 
