@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlparse
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
@@ -132,6 +134,13 @@ def update_status(current_version: str, manifest: ReleaseManifest) -> dict[str, 
     }
 
 
+def select_asset(manifest: ReleaseManifest, platform: str) -> ReleaseAsset | None:
+    for asset in manifest.assets:
+        if asset.platform == platform:
+            return asset
+    return None
+
+
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -149,3 +158,47 @@ def asset_from_file(path: Path, *, url: str, platform: str | None = None) -> Rel
         platform=platform,
     )
 
+
+def download_asset(asset: ReleaseAsset, out_dir: Path) -> tuple[Path | None, str | None]:
+    """Download/copy a release asset and verify its checksum when present.
+
+    This intentionally does not execute the installer. The UI should show the
+    downloaded file, checksum status, release notes, and require explicit user
+    approval before starting an installer.
+    """
+
+    if not asset.url:
+        return None, "asset has no URL"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    destination = out_dir / asset.name
+
+    parsed = urlparse(asset.url)
+    try:
+        if parsed.scheme == "file":
+            source = Path(unquote(parsed.path))
+            if not source.exists():
+                return None, f"file asset does not exist: {source}"
+            shutil.copyfile(source, destination)
+        else:
+            request = Request(asset.url, headers={"User-Agent": "ORYND-CAD-Bridge-Updater"})
+            with urlopen(request, timeout=60) as response:  # noqa: S310 - release manifest controlled URL
+                with destination.open("wb") as handle:
+                    shutil.copyfileobj(response, handle)
+    except HTTPError as exc:
+        return None, f"HTTP {exc.code}: {exc.reason}"
+    except URLError as exc:
+        return None, str(exc.reason)
+    except Exception as exc:
+        return None, str(exc)
+
+    if asset.size_bytes is not None and destination.stat().st_size != asset.size_bytes:
+        destination.unlink(missing_ok=True)
+        return None, "downloaded size does not match manifest"
+
+    if asset.sha256:
+        actual = sha256_file(destination)
+        if actual.lower() != asset.sha256.lower():
+            destination.unlink(missing_ok=True)
+            return None, "downloaded SHA256 does not match manifest"
+
+    return destination, None

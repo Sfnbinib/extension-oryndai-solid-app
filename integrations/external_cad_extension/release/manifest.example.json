@@ -11,7 +11,13 @@
       "url": "https://github.com/ORYND-AI/orynd-cad-bridge/releases/download/v0.1.0/ORYND-CAD-Bridge-Setup-0.1.0.exe",
       "sha256": "REPLACE_WITH_RELEASE_ASSET_SHA256",
       "size_bytes": 0
+    },
+    {
+      "name": "ORYND-CAD-Bridge-Companion-0.1.0.dmg",
+      "platform": "macos-arm64",
+      "url": "https://github.com/ORYND-AI/orynd-cad-bridge/releases/download/v0.1.0/ORYND-CAD-Bridge-Companion-0.1.0.dmg",
+      "sha256": "REPLACE_WITH_RELEASE_ASSET_SHA256",
+      "size_bytes": 0
     }
   ]
 }
-

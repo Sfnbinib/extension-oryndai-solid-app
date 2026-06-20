@@ -314,6 +314,12 @@ Default URL:
 http://127.0.0.1:8765
 ```
 
+Cloud Design visual preview:
+
+```text
+http://127.0.0.1:8765/cloud-design
+```
+
 Check GenCAD readiness:
 
 ```bash
@@ -503,6 +509,8 @@ helpers. Real server-side enforcement and payment callbacks are not done.
 - `UI_AND_CHAT_IMPLEMENTATION_PROMPTS.md`
 - `CODE_DESIGN_SYSTEM_IMPLEMENTATION_PROMPT.md`
 - `PRODUCTION_READINESS_GAPS.md`
+- `SELECTION_CONTEXT_AND_CHAT_UX.md`
+- `DEPLOYMENT_PORTS_AND_BACKEND_MAP.md`
 - `SOLIDWORKS_ADDIN_UI_PLAN.md`
 - `WINDOWS_ADDIN_BUILD_AND_TEST_GUIDE.md`
 - `SOLIDWORKS_FORMATS.md`

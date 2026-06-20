@@ -39,6 +39,50 @@ def test_web_app_index_renders():
     assert "ORYND CAD Bridge" in req.wfile.getvalue().decode("utf-8")
 
 
+def test_web_app_cloud_design_preview_renders():
+    req = DummyRequest("GET", "/cloud-design")
+    req.do_GET()
+    assert req._response_status == 200
+    body = req.wfile.getvalue().decode("utf-8")
+    assert "ORYND CAD Bridge — Task Pane System" in body
+    assert "cad/cad-taskpane.jsx" in body
+
+
+def test_web_app_cloud_design_asset_renders():
+    req = DummyRequest("GET", "/cloud-design/cad/cad-theme.css")
+    req.do_GET()
+    assert req._response_status == 200
+    body = req.wfile.getvalue().decode("utf-8")
+    assert "ORYND CAD Bridge" in body
+    assert "--accent" in body
+
+
+def test_cloud_design_model_routes_are_not_all_selectable_by_default():
+    req = DummyRequest("GET", "/cloud-design/cad/cad-components.jsx")
+    req.do_GET()
+    assert req._response_status == 200
+    body = req.wfile.getvalue().decode("utf-8")
+    assert "Cloud Anthropic" in body
+    assert "disabledRouteReason" in body
+    assert "disabled: !ready" in body
+
+
+def test_cloud_design_settings_contains_api_key_input():
+    req = DummyRequest("GET", "/cloud-design/cad/cad-screens.jsx")
+    req.do_GET()
+    assert req._response_status == 200
+    body = req.wfile.getvalue().decode("utf-8")
+    assert "Anthropic API key" in body
+    assert "tp-key-input" in body
+    assert "BYO routes stay disabled until a key is saved" in body
+
+
+def test_web_app_cloud_design_blocks_path_traversal():
+    req = DummyRequest("GET", "/cloud-design/../README.md")
+    req.do_GET()
+    assert req._response_status == 404
+
+
 def test_web_app_scenario_endpoint():
     req = DummyRequest("POST", "/api/scenario", {"prompt": "I want a brake disc with 5 holes.", "scenario": "brake_disc"})
     req.do_POST()

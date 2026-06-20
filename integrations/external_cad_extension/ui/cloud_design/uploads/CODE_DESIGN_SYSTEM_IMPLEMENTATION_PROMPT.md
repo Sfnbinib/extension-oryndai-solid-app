@@ -44,30 +44,13 @@ public website.
 пишет инженерный запрос или прикрепляет фото/sketch/mesh/reference.
 Система:
 1. понимает задачу;
-2. сама выбирает нужные инструменты;
-3. при необходимости запускает search/research;
-4. при необходимости запускает image/mesh/decomposition path;
-5. строит CAD operation plan;
-6. показывает assumptions, warnings, validation;
-7. показывает macro/API preview;
-8. требует explicit approval;
-9. только после approval запускает target CAD execution/export.
-
-Важное UX-правило:
-Не заставляй пользователя вручную выбирать режим `Create / Modify / Search /
-Validate / Export`. Это внутренние tool choices агента, а не основной control.
-Пользователь должен писать естественно: "сделай тормозной диск", "найди
-референсы", "увеличь это отверстие", "экспортируй STEP". Система сама
-классифицирует intent и выбирает create/modify/search/validate/export path.
-
-Допустимы только optional power-user shortcuts:
-- slash commands вроде `/search`, `/validate`, `/export`, `/reuse`;
-- debug/advanced tool override в settings/dev mode;
-- visible active-tool status, показывающий что агент сейчас делает.
-
-Slash commands не должны быть главным UX и не должны обходить лимиты/approval.
-Если `/search` явно запускает server/tool запрос, UI должен показывать cost/limit
-state или подтверждение, если это дорогой route.
+2. при необходимости запускает search/research;
+3. при необходимости запускает image/mesh/decomposition path;
+4. строит CAD operation plan;
+5. показывает assumptions, warnings, validation;
+6. показывает macro/API preview;
+7. требует explicit approval;
+8. только после approval запускает target CAD execution/export.
 
 Ключевая мысль владельца:
 Это не просто чат. Это комбинированная система:
@@ -221,49 +204,12 @@ Model/tool routing:
 
 Prompt/input:
 - `PromptComposer`
-- `ComposerActionButton`
-- `ComposerPlusMenu`
-- `ComposerMenuItem`
-- `ToolInvocationHint`
-- `SlashCommandMenu`
+- `ModeSegmentedControl`
 - `AttachmentTray`
 - `AttachmentPreview`
 - `PromptExampleButton`
 - `RunButton`
 - `CancelRunButton`
-
-Composer plus-menu rule:
-The bottom composer should not show a row of permanent technical buttons for
-image/sketch/mesh/search modes. Use one compact `+` action button, similar to
-modern chat products. Clicking `+` opens a small menu.
-
-Required `+` menu items:
-- Photo or Sketch:
-  - choose image from files;
-  - capture/paste image if host supports it;
-  - accepted examples: PNG, JPG, WEBP.
-- CAD / Model File:
-  - choose STEP, STL, OBJ, SLDPRT/SLDASM when supported;
-  - route to mesh/import/decomposition path when needed.
-- Current CAD Selection:
-  - attach selected face/body/feature/component from SolidWorks;
-  - equivalent to "Use current selection".
-- Plugins / Tools:
-  - optional advanced area for search, GenCAD, AI Model 4, local model, MCP route;
-  - hidden/collapsed by default if not configured.
-- Recent Assets:
-  - attach/reuse saved macro recipe, generated model, or previous export.
-
-The menu should be compact and keyboard-accessible:
-- icon + short label;
-- one-line hint;
-- disabled state with reason;
-- no nested card UI;
-- no visual clutter in the normal composer state.
-
-The main user path remains natural language. The `+` menu only attaches context
-or optional tools; it does not force the user to manually select Create/Modify/
-Search/Validate mode.
 
 Agent/chat:
 - `ChatMessage`
@@ -731,3 +677,4 @@ Use this section when starting the future site/design-library work.
 8. Which dependencies are safe for Windows installer/WebView2 packaging?
 
 Do not block the SolidWorks MVP on a large design-library migration.
+

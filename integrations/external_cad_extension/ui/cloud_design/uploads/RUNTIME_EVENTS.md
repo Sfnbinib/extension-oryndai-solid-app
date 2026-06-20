@@ -35,17 +35,6 @@ explicit events that every surface can render.
 - `exporting`
 - `finished`
 - `failed`
-- `selection_captured`
-- `selection_context_ready`
-- `selection_context_failed`
-- `clarification_required`
-- `clarification_answered`
-- `chat_summary_updated`
-- `asset_saved`
-- `asset_reused`
-- `plan_patched`
-- `cheap_edit_applied`
-- `model_route_escalated`
 
 ## UI Rendering
 
@@ -61,25 +50,3 @@ Task Pane should render:
 
 This is how the chat can feel alive without coupling design to model internals.
 
-## Selection-Aware Events
-
-The Task Pane also needs events for CAD selection context and cheap local edits.
-See `SELECTION_CONTEXT_AND_CHAT_UX.md` for the full interaction contract.
-
-Example:
-
-```json
-{
-  "run_id": "run_123",
-  "type": "selection_context_ready",
-  "title": "Selection attached",
-  "message": "Face from bolt_1_cut is now attached to this chat.",
-  "progress": 1,
-  "payload": {
-    "selection_id": "sel_2026_06_19_001",
-    "kind": "face",
-    "owner_feature": "bolt_1_cut",
-    "source_operation_id": "bolt_1"
-  }
-}
-```

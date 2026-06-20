@@ -45,6 +45,7 @@ orynd-cad-bridge
   releases/
     v0.1.0
       ORYND-CAD-Bridge-Setup-0.1.0.exe
+      ORYND-CAD-Bridge-Companion-0.1.0.dmg
       manifest.json
       checksums.txt
 ```
@@ -70,7 +71,8 @@ app starts
   -> user approves
   -> download installer
   -> verify SHA256
-  -> run installer / ask user to close SolidWorks
+  -> ask user to close SolidWorks
+  -> run installer only after explicit approval
 ```
 
 Do not auto-run hidden updates while SolidWorks is open.
@@ -103,6 +105,29 @@ Generate a release asset manifest entry from a built installer:
   --url https://github.com/ORYND-AI/orynd-cad-bridge/releases/download/v0.1.0/ORYND-CAD-Bridge-Setup-0.1.0.exe \
   --platform windows-x64
 ```
+
+Download and verify an update asset without executing it:
+
+```bash
+.venv/bin/python -m integrations.external_cad_extension.cli update-download \
+  --manifest-file integrations/external_cad_extension/release/manifest.example.json \
+  --platform windows-x64 \
+  --current-version 0.0.1
+```
+
+For the website, publish a stable manifest URL and make the Download page read
+that manifest:
+
+```text
+GET /downloads/cad-bridge
+  -> fetch stable.json
+  -> show Windows .exe and macOS .dmg assets
+  -> show version, size, SHA256, release notes
+```
+
+The macOS `.dmg` is a companion/demo package. The real in-SolidWorks Task Pane
+add-in is Windows/SolidWorks because native SolidWorks add-ins are Windows COM
+add-ins.
 
 ## First Test Build
 

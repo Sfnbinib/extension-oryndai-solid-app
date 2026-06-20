@@ -103,13 +103,8 @@ Primary product surfaces to implement/spec:
      - small settings icon.
    - Chat input:
      - multiline engineering prompt;
-     - single compact `+` action button for attachments/tools;
-     - `+` menu items: Photo/Sketch, CAD/Model File, Current CAD Selection,
-       Plugins/Tools, Recent Assets;
-     - no primary manual mode selector;
-     - agent automatically chooses Create / Modify / Search / Validate / Export path;
-     - optional slash commands for power users: `/search`, `/validate`, `/export`, `/reuse`;
-     - visible active-tool/status hint instead of forcing user to choose a mode;
+     - attach image/sketch/mesh buttons;
+     - mode selector: Create / Modify / Search / Validate / Export;
      - run button.
    - Agent status strip:
      - Understanding;
@@ -318,44 +313,13 @@ Layout:
    - result/export card.
 3. Fixed bottom composer:
    - multiline prompt input;
-   - one compact `+` action button, not a row of permanent attachment buttons;
-   - `+` menu:
-     - Photo or Sketch:
-       - choose image from files;
-       - paste/capture image if supported;
-       - route to vision/GenCAD/image planning path;
-     - CAD / Model File:
-       - STEP;
-       - STL;
-       - OBJ;
-       - SLDPRT/SLDASM when supported;
-       - route to import/decomposition path;
-     - Current CAD Selection:
-       - attach selected face/body/feature/component;
-     - Plugins / Tools:
-       - Search;
-       - GenCAD;
-       - AI Model 4;
-       - MCP/external agent route;
-       - hidden/disabled unless configured;
-     - Recent Assets:
-       - saved macro recipes;
-       - generated models;
-       - previous exports;
-   - no default mode segmented control;
-   - intent/tool routing is agent-managed;
-   - optional slash-command menu:
-     - `/search`;
-     - `/validate`;
-     - `/export`;
-     - `/reuse`;
-     - `/attach-selection`;
-   - active tool hint:
-     - Creating;
-     - Modifying selected feature;
-     - Searching references;
-     - Validating macro;
-     - Exporting;
+   - attach buttons: image, sketch, mesh, STEP/STL/OBJ;
+   - mode segmented control:
+     - Create;
+     - Modify;
+     - Search;
+     - Validate;
+     - Export;
    - model route selector:
      - ORYND;
      - BYO Claude;

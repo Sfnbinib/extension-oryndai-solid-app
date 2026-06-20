@@ -1,0 +1,123 @@
+/* ============================================================
+   ORYND — Design Tokens (Colors + Type)
+   ============================================================
+   Source of truth: orynd_cl_site_profe repo
+     · _new_designs/other/Colors and Type.css  (official tokens)
+     · app/landing.css                          (Landing v3)
+   Brand: "warm minimal industrial — a designer's lab notebook."
+   Repo: https://github.com/Sfnbinib/orynd_cl_site_profe
+   ============================================================ */
+
+/* Webfonts (Google Fonts). Self-host for production. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap");
+
+:root{
+  /* ---------- NEUTRALS (warm, low-saturation) ---------- */
+  --bg:      #f3f3f0;  /* cream paper — page background          */
+  --bg-2:    #e9e9e4;  /* warm sink — chips, inset wells         */
+  --paper:   #fafaf7;  /* raised paper — cards, inputs           */
+  --ink:     #111110;  /* near-black ink — primary text, dark UI */
+  --ink-2:   #45453f;  /* secondary text                         */
+  --ink-3:   #86857e;  /* tertiary / mono labels / placeholders  */
+
+  /* ---------- HAIRLINES ---------- */
+  --line:    #d8d8d2;  /* default border / divider               */
+  --line-2:  #c3c3bc;  /* stronger border (cards, controls)      */
+
+  /* ---------- SIGNATURE ACCENT ---------- */
+  --accent:    #e2531a;  /* ORYND orange — CTAs, highlights      */
+  --accent-2:  #ffd7b5;  /* soft peach — on-dark accents, glows  */
+  --accent-ink:#c8430f;  /* pressed/darker orange (hover)        */
+
+  /* ---------- SEMANTIC ---------- */
+  --ok:      #2f6f3e;  /* success / verified / live              */
+
+  /* Extra surface/wash tokens (from Checkout + on-dark contexts) */
+  --inset:       #f6f5f2;  /* input wells on paper */
+  --accent-soft: #fbeee6;  /* tinted accent wash — soft chips/warnings */
+  --ok-soft:     #e8f1ea;  /* tinted success wash */
+  --on-dark-mut: #a39d8e;  /* muted text on --ink surfaces */
+  --on-dark-2:   #cfc7b6;  /* secondary text on --ink surfaces */
+
+  /* ---------- CATEGORY HUES (shared chroma family) ----------
+     Used by the Skills registry to tag CAD part categories.    */
+  --cat-sheet:  #e2531a;   /* sheet metal   */
+  --cat-enclos: #2f6f3e;   /* enclosure     */
+  --cat-thread: #3b5bdb;   /* thread        */
+  --cat-fixture:#9c36b5;   /* fixture       */
+  --cat-robot:  #0c8599;   /* robotics      */
+  --cat-bracket:#c2410c;   /* bracket       */
+  --cat-gear:   #a16207;   /* gear          */
+  --cat-fasten: #5b4ba8;   /* fastener      */
+  --cat-mount:  #0e7490;   /* mount         */
+  --cat-analys: #be185d;   /* analysis      */
+
+  /* ---------- TYPE FAMILIES ---------- */
+  --font-sans:   "Inter", system-ui, -apple-system, sans-serif;
+  --font-serif:  "Instrument Serif", Georgia, "Times New Roman", serif; /* italic only */
+  --font-mono:   "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  /* ---------- RADII ---------- */
+  --r-xs: 6px;    /* chips, small badges            */
+  --r-sm: 8px;    /* buttons, inputs                */
+  --r-md: 11px;   /* nested cards, command blocks   */
+  --r-lg: 14px;   /* cards, search bar              */
+  --r-xl: 18px;   /* feature panels, large cards    */
+  --r-pill: 999px;/* pills, nav buttons, avatars    */
+
+  /* ---------- SHADOWS (warm, soft, low) ---------- */
+  --sh-card:  0 14px 30px -20px rgba(22,20,15,.22);
+  --sh-pop:   0 18px 38px -20px rgba(22,20,15,.26);
+  --sh-deep:  0 30px 60px -30px rgba(22,20,15,.5);
+  --sh-accent:0 8px 22px -10px rgba(226,83,26,.55);
+
+  /* ---------- SPACING SCALE (4px base) ---------- */
+  --s-1: 4px;  --s-2: 8px;  --s-3: 12px; --s-4: 16px;
+  --s-5: 20px; --s-6: 24px; --s-8: 32px; --s-10: 40px;
+  --s-12: 48px; --s-16: 64px; --s-22: 88px; --s-24: 96px;
+
+  /* ---------- MOTION ---------- */
+  --e: cubic-bezier(.2,.7,.2,1);   /* the ORYND easing */
+
+  /* ---------- LAYOUT ---------- */
+  --container: 1280px;
+  --gutter: 32px;
+}
+
+/* ============================================================
+   SEMANTIC TYPE ROLES
+   ============================================================ */
+
+/* Display — Instrument Serif, ALWAYS italic, reserved for ONE
+   emotional word/phrase inside a sans headline (never full lines).
+   e.g. "Build the way <em>you</em> think." */
+.t-display{
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -.02em;
+  color: var(--accent);
+}
+
+/* Headlines — Inter, tight tracking, heavy optical sizes */
+.t-h1{ font-family:var(--font-sans); font-weight:600; font-size:clamp(44px,6.6vw,92px); line-height:.96; letter-spacing:-.035em; }
+.t-h2{ font-family:var(--font-sans); font-weight:600; font-size:clamp(32px,3.8vw,52px); line-height:1;   letter-spacing:-.025em; }
+.t-h3{ font-family:var(--font-sans); font-weight:600; font-size:22px; line-height:1.1; letter-spacing:-.01em; }
+
+/* Body */
+.t-lede{ font-family:var(--font-sans); font-weight:400; font-size:19px; line-height:1.5; color:var(--ink-2); }
+.t-body{ font-family:var(--font-sans); font-weight:400; font-size:14px; line-height:1.55; color:var(--ink-2); }
+
+/* Mono label — uppercase, wide tracking. Section numbers,
+   timestamps, eyebrows, stats, version strings. */
+.t-label{
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.t-mono{ font-family:var(--font-mono); font-size:12px; color:var(--ink-2); }
+
+/* Selection uses peach accent */
+::selection{ background: var(--accent-2); }

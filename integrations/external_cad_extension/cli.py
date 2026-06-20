@@ -19,7 +19,15 @@ from .gencad_adapter import GenCADConfig, gencad_status, run_gencad_inference
 from .orchestrator import render_scenario_markdown, run_scenario
 from .object_recipes import recipes_as_dict, render_recipes_markdown
 from .preview import render_preview_markdown
-from .release_manifest import CURRENT_VERSION, asset_from_file, fetch_manifest, load_manifest, update_status
+from .release_manifest import (
+    CURRENT_VERSION,
+    asset_from_file,
+    download_asset,
+    fetch_manifest,
+    load_manifest,
+    select_asset,
+    update_status,
+)
 from .runtime_mvp import render_runtime_mvp_markdown, runtime_mvp_as_dict
 from .settings import (
     configure_model_key,
@@ -100,6 +108,17 @@ def build_parser() -> argparse.ArgumentParser:
     update_source.add_argument("--manifest-file")
     update_source.add_argument("--manifest-url")
     update_check.add_argument("--current-version", default=CURRENT_VERSION)
+
+    update_download = subparsers.add_parser(
+        "update-download",
+        help="Download a release asset from a manifest and verify size/SHA256. Does not execute installers.",
+    )
+    update_download_source = update_download.add_mutually_exclusive_group(required=True)
+    update_download_source.add_argument("--manifest-file")
+    update_download_source.add_argument("--manifest-url")
+    update_download.add_argument("--platform", default="windows-x64")
+    update_download.add_argument("--out-dir", default="integrations/external_cad_extension/out/downloads")
+    update_download.add_argument("--current-version", default=CURRENT_VERSION)
 
     release_asset = subparsers.add_parser("release-asset", help="Create release asset metadata with SHA256.")
     release_asset.add_argument("--file", required=True)
@@ -259,6 +278,28 @@ def main(argv: list[str] | None = None) -> int:
             _print_json({"ok": False, "error": error})
             return 2
         _print_json({"ok": True, **update_status(args.current_version, manifest)})
+        return 0
+    if args.command == "update-download":
+        if args.manifest_file:
+            manifest = load_manifest(Path(args.manifest_file))
+        else:
+            manifest, error = fetch_manifest(args.manifest_url)
+            if error or manifest is None:
+                _print_json({"ok": False, "error": error})
+                return 2
+        status = update_status(args.current_version, manifest)
+        if not status["update_available"] and not status["force_update"]:
+            _print_json({"ok": True, "downloaded": False, "reason": "already up to date", **status})
+            return 0
+        asset = select_asset(manifest, args.platform)
+        if asset is None:
+            _print_json({"ok": False, "error": f"no asset for platform: {args.platform}", **status})
+            return 2
+        path, error = download_asset(asset, Path(args.out_dir))
+        if error or path is None:
+            _print_json({"ok": False, "error": error, "asset": asset.to_dict(), **status})
+            return 2
+        _print_json({"ok": True, "downloaded": True, "path": str(path), "asset": asset.to_dict(), **status})
         return 0
     if args.command == "release-asset":
         asset = asset_from_file(Path(args.file), url=args.url, platform=args.platform)

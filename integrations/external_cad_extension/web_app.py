@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import json
+import mimetypes
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, unquote, urlparse
 
 from .ai_model_4_adapter import primitives_to_operation_plan
 from .env_config import load_supabase_config
@@ -28,6 +29,9 @@ from .validator import validate_generation
 
 HOST = "127.0.0.1"
 PORT = 8765
+MODULE_DIR = Path(__file__).resolve().parent
+CLOUD_DESIGN_DIR = MODULE_DIR / "ui" / "cloud_design"
+CLOUD_DESIGN_INDEX = CLOUD_DESIGN_DIR / "ORYND CAD Bridge.html"
 
 
 class CadBridgeHandler(BaseHTTPRequestHandler):
@@ -37,6 +41,12 @@ class CadBridgeHandler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         if parsed.path in {"/", "/index.html"}:
             self._send_html(INDEX_HTML)
+            return
+        if parsed.path in {"/cloud-design", "/cloud-design/"}:
+            self._send_file(CLOUD_DESIGN_INDEX)
+            return
+        if parsed.path.startswith("/cloud-design/"):
+            self._send_cloud_design_asset(parsed.path.removeprefix("/cloud-design/"))
             return
         if parsed.path == "/api/settings":
             self._send_json(load_settings(_path_from_query(parsed.query)).to_dict())
@@ -158,6 +168,30 @@ class CadBridgeHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_cloud_design_asset(self, raw_relative_path: str) -> None:
+        relative_path = unquote(raw_relative_path)
+        if not relative_path or relative_path.endswith("/"):
+            self._send_file(CLOUD_DESIGN_INDEX)
+            return
+        candidate = (CLOUD_DESIGN_DIR / relative_path).resolve()
+        try:
+            candidate.relative_to(CLOUD_DESIGN_DIR.resolve())
+        except ValueError:
+            self._send_json({"error": "not found"}, status=404)
+            return
+        self._send_file(candidate)
+
+    def _send_file(self, path: Path) -> None:
+        if not path.exists() or not path.is_file():
+            self._send_json({"error": "not found"}, status=404)
+            return
+        body = path.read_bytes()
+        self.send_response(200)
+        self.send_header("Content-Type", _content_type_for(path))
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
 
 def _settings_path(payload: dict[str, Any]) -> Path:
     value = payload.get("settings_path")
@@ -175,6 +209,17 @@ def run_server(host: str = HOST, port: int = PORT) -> ThreadingHTTPServer:
     print(f"ORYND CAD Bridge companion UI: http://{host}:{port}", flush=True)
     server.serve_forever()
     return server
+
+
+def _content_type_for(path: Path) -> str:
+    if path.suffix == ".jsx":
+        return "text/babel; charset=utf-8"
+    if path.suffix == ".md":
+        return "text/markdown; charset=utf-8"
+    if path.suffix in {".html", ".css", ".js", ".json", ".svg"}:
+        guessed = mimetypes.guess_type(path.name)[0]
+        return f"{guessed or 'text/plain'}; charset=utf-8"
+    return mimetypes.guess_type(path.name)[0] or "application/octet-stream"
 
 
 def main() -> int:

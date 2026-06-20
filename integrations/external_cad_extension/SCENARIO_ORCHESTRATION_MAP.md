@@ -61,7 +61,7 @@ The chat is not only a text box. It is an execution console.
 
 ```mermaid
 flowchart TB
-    Input["Prompt Composer\ntext + image + mesh + mode"] --> Message["User Message"]
+    Input["Prompt Composer\ntext + image + mesh\noptional slash command"] --> Message["User Message"]
     Message --> Status["Status Timeline"]
 
     Status --> S1["1. Understanding\nwhat object/task is this?"]
@@ -81,6 +81,11 @@ Each status should show:
 - which tool was used, if any;
 - what was found or assumed;
 - whether the result is ready, blocked, or needs user input.
+
+The user should not have to manually choose `Create`, `Modify`, `Search`,
+`Validate`, or `Export` before sending a normal message. Those are internal
+agent/tool routes. The UI may expose optional slash commands for expert users,
+but the main workflow is natural language plus attachments/selection context.
 
 ## What The Strong Model Should Be Told
 

@@ -1,0 +1,175 @@
+{
+  "plugins": [
+    "react",
+    "import"
+  ],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": []
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "app/content/**",
+              "ui_kits/checkout/**"
+            ],
+            "message": "Import design-system components from 'index.js', not component internals."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:Inter|JetBrains Mono|Instrument Serif))/i]",
+        "message": "Font not provided by the design system. Available: Inter, JetBrains Mono, Instrument Serif."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.js"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {},
+    "tokens": [
+      "--accent",
+      "--accent-2",
+      "--accent-ink",
+      "--accent-soft",
+      "--bg",
+      "--bg-2",
+      "--cat-analys",
+      "--cat-bracket",
+      "--cat-enclos",
+      "--cat-fasten",
+      "--cat-fixture",
+      "--cat-gear",
+      "--cat-mount",
+      "--cat-robot",
+      "--cat-sheet",
+      "--cat-thread",
+      "--container",
+      "--e",
+      "--font-mono",
+      "--font-sans",
+      "--font-serif",
+      "--gutter",
+      "--ink",
+      "--ink-2",
+      "--ink-3",
+      "--inset",
+      "--line",
+      "--line-2",
+      "--ok",
+      "--ok-soft",
+      "--on-dark-2",
+      "--on-dark-mut",
+      "--paper",
+      "--r-lg",
+      "--r-md",
+      "--r-pill",
+      "--r-sm",
+      "--r-xl",
+      "--r-xs",
+      "--s-1",
+      "--s-10",
+      "--s-12",
+      "--s-16",
+      "--s-2",
+      "--s-22",
+      "--s-24",
+      "--s-3",
+      "--s-4",
+      "--s-5",
+      "--s-6",
+      "--s-8",
+      "--sh-accent",
+      "--sh-card",
+      "--sh-deep",
+      "--sh-pop"
+    ],
+    "tokenKinds": {
+      "--bg": "color",
+      "--bg-2": "color",
+      "--paper": "color",
+      "--ink": "color",
+      "--ink-2": "color",
+      "--ink-3": "color",
+      "--line": "color",
+      "--line-2": "color",
+      "--accent": "color",
+      "--accent-2": "color",
+      "--accent-ink": "color",
+      "--ok": "color",
+      "--inset": "spacing",
+      "--accent-soft": "color",
+      "--ok-soft": "color",
+      "--on-dark-mut": "color",
+      "--on-dark-2": "color",
+      "--cat-sheet": "color",
+      "--cat-enclos": "color",
+      "--cat-thread": "color",
+      "--cat-fixture": "color",
+      "--cat-robot": "color",
+      "--cat-bracket": "color",
+      "--cat-gear": "color",
+      "--cat-fasten": "color",
+      "--cat-mount": "color",
+      "--cat-analys": "color",
+      "--font-sans": "font",
+      "--font-serif": "font",
+      "--font-mono": "font",
+      "--r-xs": "spacing",
+      "--r-sm": "spacing",
+      "--r-md": "spacing",
+      "--r-lg": "spacing",
+      "--r-xl": "spacing",
+      "--r-pill": "spacing",
+      "--sh-card": "shadow",
+      "--sh-pop": "shadow",
+      "--sh-deep": "shadow",
+      "--sh-accent": "shadow",
+      "--s-1": "spacing",
+      "--s-2": "spacing",
+      "--s-3": "spacing",
+      "--s-4": "spacing",
+      "--s-5": "spacing",
+      "--s-6": "spacing",
+      "--s-8": "spacing",
+      "--s-10": "spacing",
+      "--s-12": "spacing",
+      "--s-16": "spacing",
+      "--s-22": "spacing",
+      "--s-24": "spacing",
+      "--e": "other",
+      "--container": "spacing",
+      "--gutter": "spacing"
+    },
+    "fontFamilies": [
+      "Instrument Serif",
+      "Inter",
+      "JetBrains Mono"
+    ]
+  }
+}
