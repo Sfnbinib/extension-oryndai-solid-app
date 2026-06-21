@@ -9,6 +9,7 @@ from integrations.external_cad_extension.release_manifest import (
     download_asset,
     is_update_available,
     select_asset,
+    should_force_update,
     update_status,
     write_manifest,
 )
@@ -28,6 +29,17 @@ def test_update_status_from_manifest():
     assert status["force_update"] is True
 
 
+def test_update_forces_after_four_deferrals():
+    manifest = ReleaseManifest(product="ORYND CAD Bridge", version="0.2.0")
+    assert should_force_update(current_version="0.1.0", manifest=manifest, deferral_count=3) is False
+    assert should_force_update(current_version="0.1.0", manifest=manifest, deferral_count=4) is True
+
+    status = update_status("0.1.0", manifest, deferral_count=4)
+    assert status["force_update"] is True
+    assert status["deferral_count"] == 4
+    assert status["max_deferrals"] == 4
+
+
 def test_cli_update_check_local_manifest():
     completed = subprocess.run(
         [
@@ -39,6 +51,8 @@ def test_cli_update_check_local_manifest():
             "integrations/external_cad_extension/release/manifest.example.json",
             "--current-version",
             "0.0.1",
+            "--deferral-count",
+            "4",
         ],
         check=False,
         capture_output=True,
@@ -48,6 +62,7 @@ def test_cli_update_check_local_manifest():
     data = json.loads(completed.stdout)
     assert data["product"] == "ORYND CAD Bridge"
     assert data["update_available"] is True
+    assert data["force_update"] is True
 
 
 def test_cli_release_asset(tmp_path):

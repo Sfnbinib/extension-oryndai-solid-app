@@ -512,6 +512,7 @@ helpers. Real server-side enforcement and payment callbacks are not done.
 - `SELECTION_CONTEXT_AND_CHAT_UX.md`
 - `DEPLOYMENT_PORTS_AND_BACKEND_MAP.md`
 - `SOLIDWORKS_ADDIN_UI_PLAN.md`
+- `SOLIDWORKS_USER_INSTALL_GUIDE.md`
 - `WINDOWS_ADDIN_BUILD_AND_TEST_GUIDE.md`
 - `SOLIDWORKS_FORMATS.md`
 - `MCP.md`

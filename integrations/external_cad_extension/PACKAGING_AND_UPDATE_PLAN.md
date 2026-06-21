@@ -53,6 +53,29 @@ orynd-cad-bridge
 The website Download button should point to the latest stable installer or a
 download landing page that resolves the latest GitHub release.
 
+Do not link normal users directly to a private GitHub source archive. If the
+release repository stays private, the public website must proxy downloads
+through ORYND backend or issue short-lived signed download URLs. Otherwise only
+GitHub users with repository access can download the asset.
+
+Recommended website behavior:
+
+```text
+/download/cad-bridge
+  -> detect OS from browser only as a convenience
+  -> show both Windows and macOS options
+  -> default Windows .exe for Windows users
+  -> default macOS .dmg for Mac users
+  -> keep manual "Download for Windows" and "Download for Mac" buttons
+```
+
+The manifest should contain both assets:
+
+```text
+windows-x64 -> ORYND-CAD-Bridge-Setup-x.y.z.exe
+macos-arm64 -> ORYND-CAD-Bridge-Companion-x.y.z.dmg
+```
+
 ## Update Strategy
 
 Installed app checks a stable manifest URL:
@@ -68,14 +91,29 @@ app starts
   -> fetch manifest
   -> compare version
   -> show update available
-  -> user approves
+  -> user approves or defers
   -> download installer
   -> verify SHA256
   -> ask user to close SolidWorks
   -> run installer only after explicit approval
 ```
 
-Do not auto-run hidden updates while SolidWorks is open.
+Default deferral rule:
+
+```text
+1st-3rd launch with available update
+  -> show Refresh & Update
+  -> allow "Later"
+
+4th launch with the same available update
+  -> force update gate
+  -> download and verify update
+  -> require SolidWorks close/restart
+```
+
+Do not auto-run hidden updates while SolidWorks is open. A forced update means
+the app blocks normal use until update is installed; it still must show what is
+happening and verify checksum before installing.
 
 ## Why This Beats "Just Download From GitHub Again"
 
@@ -94,7 +132,8 @@ Check a local manifest:
 
 ```bash
 .venv/bin/python -m integrations.external_cad_extension.cli update-check \
-  --manifest-file integrations/external_cad_extension/release/manifest.example.json
+  --manifest-file integrations/external_cad_extension/release/manifest.example.json \
+  --deferral-count 4
 ```
 
 Generate a release asset manifest entry from a built installer:
@@ -112,7 +151,8 @@ Download and verify an update asset without executing it:
 .venv/bin/python -m integrations.external_cad_extension.cli update-download \
   --manifest-file integrations/external_cad_extension/release/manifest.example.json \
   --platform windows-x64 \
-  --current-version 0.0.1
+  --current-version 0.0.1 \
+  --deferral-count 4
 ```
 
 For the website, publish a stable manifest URL and make the Download page read

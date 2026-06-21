@@ -19,6 +19,7 @@ from urllib.request import Request, urlopen
 
 
 CURRENT_VERSION = "0.1.0"
+MAX_UPDATE_DEFERRALS = 4
 
 
 @dataclass(frozen=True)
@@ -117,18 +118,38 @@ def fetch_manifest(url: str) -> tuple[ReleaseManifest | None, str | None]:
         return None, str(exc)
 
 
-def update_status(current_version: str, manifest: ReleaseManifest) -> dict[str, Any]:
+def should_force_update(
+    *,
+    current_version: str,
+    manifest: ReleaseManifest,
+    deferral_count: int = 0,
+    max_deferrals: int = MAX_UPDATE_DEFERRALS,
+) -> bool:
+    if bool(manifest.minimum_supported_version) and is_update_available(
+        current_version,
+        manifest.minimum_supported_version or current_version,
+    ):
+        return True
+    return is_update_available(current_version, manifest.version) and deferral_count >= max_deferrals
+
+
+def update_status(current_version: str, manifest: ReleaseManifest, *, deferral_count: int = 0) -> dict[str, Any]:
+    update_available = is_update_available(current_version, manifest.version)
+    force_update = should_force_update(
+        current_version=current_version,
+        manifest=manifest,
+        deferral_count=deferral_count,
+    )
     return {
         "product": manifest.product,
         "channel": manifest.channel,
         "current_version": current_version,
         "latest_version": manifest.version,
-        "update_available": is_update_available(current_version, manifest.version),
+        "update_available": update_available,
         "minimum_supported_version": manifest.minimum_supported_version,
-        "force_update": (
-            bool(manifest.minimum_supported_version)
-            and is_update_available(current_version, manifest.minimum_supported_version or current_version)
-        ),
+        "force_update": force_update,
+        "deferral_count": deferral_count,
+        "max_deferrals": MAX_UPDATE_DEFERRALS,
         "assets": [asset.to_dict() for asset in manifest.assets],
         "notes_url": manifest.notes_url,
     }

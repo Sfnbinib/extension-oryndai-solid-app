@@ -108,6 +108,7 @@ def build_parser() -> argparse.ArgumentParser:
     update_source.add_argument("--manifest-file")
     update_source.add_argument("--manifest-url")
     update_check.add_argument("--current-version", default=CURRENT_VERSION)
+    update_check.add_argument("--deferral-count", type=int, default=0)
 
     update_download = subparsers.add_parser(
         "update-download",
@@ -119,6 +120,7 @@ def build_parser() -> argparse.ArgumentParser:
     update_download.add_argument("--platform", default="windows-x64")
     update_download.add_argument("--out-dir", default="integrations/external_cad_extension/out/downloads")
     update_download.add_argument("--current-version", default=CURRENT_VERSION)
+    update_download.add_argument("--deferral-count", type=int, default=0)
 
     release_asset = subparsers.add_parser("release-asset", help="Create release asset metadata with SHA256.")
     release_asset.add_argument("--file", required=True)
@@ -271,13 +273,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "update-check":
         if args.manifest_file:
             manifest = load_manifest(Path(args.manifest_file))
-            _print_json(update_status(args.current_version, manifest))
+            _print_json(update_status(args.current_version, manifest, deferral_count=args.deferral_count))
             return 0
         manifest, error = fetch_manifest(args.manifest_url)
         if error or manifest is None:
             _print_json({"ok": False, "error": error})
             return 2
-        _print_json({"ok": True, **update_status(args.current_version, manifest)})
+        _print_json({"ok": True, **update_status(args.current_version, manifest, deferral_count=args.deferral_count)})
         return 0
     if args.command == "update-download":
         if args.manifest_file:
@@ -287,7 +289,7 @@ def main(argv: list[str] | None = None) -> int:
             if error or manifest is None:
                 _print_json({"ok": False, "error": error})
                 return 2
-        status = update_status(args.current_version, manifest)
+        status = update_status(args.current_version, manifest, deferral_count=args.deferral_count)
         if not status["update_available"] and not status["force_update"]:
             _print_json({"ok": True, "downloaded": False, "reason": "already up to date", **status})
             return 0
