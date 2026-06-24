@@ -335,10 +335,10 @@ function Composer({ value = '', route = 'ORYND', sending = false, disabled = fal
 }
 
 // ---------- UPDATE AVAILABLE BANNER ----------
-function UpdateBanner({ onUpdate, onDismiss }) {
+function UpdateBanner({ onUpdate, onDismiss, version = '1.4.2' }) {
   return h('div', { className: 'tp-update' },
     h('span', { className: 'uico' }, h(I.Refresh, { size: 14 })),
-    h('span', { className: 'utxt' }, h('b', null, 'Update available'), ' · v1.4.2'),
+    h('span', { className: 'utxt' }, h('b', null, 'Update available'), ' · v' + version),
     h('button', { className: 'tp-update-btn', onClick: onUpdate },
       h(I.Download, { size: 12 }), 'Update'),
     h('button', { className: 'tp-update-x', title: 'Dismiss', onClick: onDismiss },

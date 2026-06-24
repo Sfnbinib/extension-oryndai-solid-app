@@ -100,6 +100,8 @@ function registerIpc() {
   ipcMain.handle('cad:install', (_e, cad) =>
     installAddin(cad, { isPackaged: app.isPackaged, resourcesPath: process.resourcesPath }),
   )
+  ipcMain.handle('updater:check', () => updater && updater.check())
+  ipcMain.handle('updater:install', () => updater && updater.install())
   ipcMain.handle('bridge:status', () => ({
     running: !!bridgeServer && bridgeServer.listening,
     port: BRIDGE_PORT,

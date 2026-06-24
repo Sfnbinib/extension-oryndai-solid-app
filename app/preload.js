@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('orynd', {
   bridgeStatus: () => ipcRenderer.invoke('bridge:status'),
   // updater
   checkUpdate: () => ipcRenderer.invoke('updater:check'),
+  installUpdate: () => ipcRenderer.invoke('updater:install'),
   onUpdate: (cb) => ipcRenderer.on('updater:available', (_e, info) => cb(info)),
   // window
   hide: () => ipcRenderer.invoke('window:hide'),

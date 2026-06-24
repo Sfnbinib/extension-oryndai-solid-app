@@ -83,7 +83,11 @@ function RunsBody() {
 function OryndApp() {
   const C = window.CAD;
   const [view, setView] = React.useState('chat'); // chat | library | runs | settings
-  const [showUpdate, setShowUpdate] = React.useState(true);
+  // Real update banner: hidden until electron-updater finds a newer GitHub release.
+  const [update, setUpdate] = React.useState(null); // { version } | null
+  React.useEffect(() => {
+    if (window.orynd && window.orynd.onUpdate) window.orynd.onUpdate((info) => setUpdate(info));
+  }, []);
 
   if (view === 'settings') {
     return _ah('div', { className: 'tp', style: { width: '100%', height: '100%' } },
@@ -96,9 +100,10 @@ function OryndApp() {
   return _ah('div', { className: 'tp', style: { width: '100%', height: '100%' } },
     _ah('div', { className: 'tp-shell' },
       _ah(C.Header, { connection: 'connected', route: 'ORYND', onSettings: () => setView('settings') }),
-      showUpdate && _ah(C.UpdateBanner, {
-        onUpdate: () => { setShowUpdate(false); window.location.reload(); },
-        onDismiss: () => setShowUpdate(false),
+      update && _ah(C.UpdateBanner, {
+        version: update.version,
+        onUpdate: () => { if (window.orynd && window.orynd.installUpdate) window.orynd.installUpdate(); },
+        onDismiss: () => setUpdate(null),
       }),
       _ah(window.DASH.PaneTabs, { active: view, onTab: setView }),
       body,
