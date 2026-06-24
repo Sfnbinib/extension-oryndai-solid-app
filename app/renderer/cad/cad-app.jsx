@@ -6,42 +6,20 @@
 const _ah = React.createElement;
 const AI = window.CADIcons;
 
-function ChatBody() {
+// Presentational chat body — state lives in OryndApp.
+function ChatBody({ blocks, sending, onSend }) {
   const C = window.CAD;
-  const [blocks, setBlocks] = React.useState([
-    { t: 'assist', em: 'ready.', text: 'Describe a part and I\'ll plan, validate, and build it in your CAD.' },
-  ]);
-  const [sending, setSending] = React.useState(false);
   const bodyRef = React.useRef(null);
   React.useEffect(() => {
     if (bodyRef.current) bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
   }, [blocks, sending]);
-
-  const send = async (text, route) => {
-    setBlocks((b) => [...b, { t: 'user', text }]);
-    setSending(true);
-    try {
-      const r = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: text, context: { route } }),
-      });
-      const d = await r.json();
-      const msg = (d && d.message) || (d && d.error) || 'No response from backend.';
-      setBlocks((b) => [...b, { t: 'assist', text: msg }]);
-    } catch (e) {
-      setBlocks((b) => [...b, { t: 'assist', em: 'offline.', text: 'Bridge error: ' + e.message }]);
-    } finally {
-      setSending(false);
-    }
-  };
 
   return _ah(React.Fragment, null,
     _ah('div', { className: 'tp-body', ref: bodyRef },
       blocks.map(window.__renderBlock),
       sending && _ah(C.AssistMsg, { em: 'working.' }, 'Thinking…'),
     ),
-    _ah(C.Composer, { route: 'ORYND', sending, onSend: send }),
+    _ah(C.Composer, { route: 'ORYND', sending, onSend }),
   );
 }
 
@@ -82,31 +60,71 @@ function RunsBody() {
 
 function OryndApp() {
   const C = window.CAD;
-  const [view, setView] = React.useState('chat'); // chat | library | runs | settings
+  const E = window.EMPTY;
+  const [view, setView] = React.useState('chat'); // chat | library | runs | overview | settings
   // Real update banner: hidden until electron-updater finds a newer GitHub release.
   const [update, setUpdate] = React.useState(null); // { version } | null
+  // Chat history — empty by default (no mock data). Populated as the user chats.
+  const [msgs, setMsgs] = React.useState([]);
+  const [sending, setSending] = React.useState(false);
+
   React.useEffect(() => {
     if (window.orynd && window.orynd.onUpdate) window.orynd.onUpdate((info) => setUpdate(info));
   }, []);
 
+  const send = async (text) => {
+    setView('chat');
+    setMsgs((m) => [...m, { t: 'user', text }]);
+    setSending(true);
+    try {
+      const r = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: text }),
+      });
+      const d = await r.json();
+      const msg = (d && d.message) || (d && d.error) || 'No response from backend.';
+      setMsgs((m) => [...m, { t: 'assist', text: msg }]);
+    } catch (e) {
+      setMsgs((m) => [...m, { t: 'assist', em: 'offline.', text: 'Bridge error: ' + e.message }]);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const goSettings = () => setView('settings');
+  const goChat = () => setView('chat');
+
   if (view === 'settings') {
     return _ah('div', { className: 'tp', style: { width: '100%', height: '100%' } },
-      window.SCREENS.settings({ onBack: () => setView('chat') }));
+      window.SCREENS.settings({ onBack: goChat }));
   }
 
-  const body = view === 'overview' ? _ah(window.DASH.VerticalDashboard, { onNewPart: () => setView('chat'), onTab: setView })
-    : view === 'library' ? _ah(LibraryBody) : view === 'runs' ? _ah(RunsBody) : _ah(ChatBody);
+  // Zero-state screens (no data yet) — each is a full pane with its own shell.
+  if (view === 'chat' && msgs.length === 0) {
+    return _ah(E.ChatEmpty, { onTab: setView, onSettings: goSettings, onSend: send, onPick: send });
+  }
+  if (view === 'library') {
+    return _ah(E.LibraryEmpty, { onTab: setView, onSettings: goSettings, onNew: goChat });
+  }
+  if (view === 'runs') {
+    return _ah(E.RunsEmpty, { onTab: setView, onSettings: goSettings, onStart: goChat });
+  }
+  if (view === 'overview') {
+    return _ah(E.OverviewEmpty, { onTab: setView, onSettings: goSettings, onNew: goChat });
+  }
 
+  // Chat with messages — interactive shell.
   return _ah('div', { className: 'tp', style: { width: '100%', height: '100%' } },
     _ah('div', { className: 'tp-shell' },
-      _ah(C.Header, { connection: 'connected', route: 'ORYND', onSettings: () => setView('settings') }),
+      _ah(C.Header, { connection: 'connected', route: 'ORYND', onSettings: goSettings }),
       update && _ah(C.UpdateBanner, {
         version: update.version,
         onUpdate: () => { if (window.orynd && window.orynd.installUpdate) window.orynd.installUpdate(); },
         onDismiss: () => setUpdate(null),
       }),
       _ah(window.DASH.PaneTabs, { active: view, onTab: setView }),
-      body,
+      _ah(ChatBody, { blocks: msgs, sending, onSend: send }),
     ),
   );
 }

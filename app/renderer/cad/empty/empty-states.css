@@ -1,0 +1,91 @@
+/* ============================================================
+   ZERO / EMPTY STATES  — cad/empty/
+   Additional CSS for first-launch and no-data screens.
+   Extends the base .tp-empty class from cad-theme.css.
+   ============================================================ */
+
+/* orbit illustration container */
+.es-orbit {
+  width: 72px; height: 72px; flex: 0 0 auto;
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.es-orbit .ring {
+  position: absolute; border-radius: 50%;
+  border: 1.5px solid var(--glass-edge); animation: es-spin linear infinite;
+}
+.es-orbit .ring-1 { width: 62px; height: 62px; animation-duration: 9s; }
+.es-orbit .ring-2 { width: 44px; height: 44px; animation-duration: 14s; animation-direction: reverse; }
+.es-orbit .diamond {
+  position: absolute; width: 9px; height: 9px; background: var(--accent);
+  transform: rotate(45deg); top: 4px; left: 50%; margin-left: -4px;
+  box-shadow: 0 0 8px 2px rgba(226,83,26,.5);
+}
+.es-orbit .center-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  background: var(--raised-2); border: 1.5px solid var(--line-2);
+  position: relative; z-index: 1;
+}
+@keyframes es-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* big heading in empty state */
+.es-h { font-size: 18px; font-weight: 600; letter-spacing: -.02em; margin: 0; text-align: center; }
+.es-h .em { font-family: 'Instrument Serif', Georgia, serif; font-style: italic; font-weight: 400; color: var(--accent); }
+.es-p { font-size: 12.5px; color: var(--ink-3); line-height: 1.6; text-align: center; margin: 0; max-width: 256px; }
+
+/* suggestion chips (chat) */
+.es-chips { display: flex; flex-direction: column; gap: 7px; width: 100%; max-width: 280px; }
+.es-chip {
+  display: flex; align-items: center; gap: 10px; padding: 10px 13px;
+  background: rgba(255,255,255,.03); border: 1px solid var(--glass-edge);
+  border-radius: var(--r-md); color: var(--ink-2); font-size: 12.5px; cursor: pointer;
+  transition: border-color .15s var(--e), color .15s var(--e), transform .15s var(--e);
+  box-shadow: inset 0 1px 0 var(--glass-hi);
+  text-align: left;
+}
+.es-chip:hover { border-color: var(--accent-line); color: var(--ink); transform: translateX(3px); }
+.es-chip .ic { color: var(--accent); flex: 0 0 auto; }
+.es-chip .arr { margin-left: auto; color: var(--ink-3); flex: 0 0 auto; opacity: .5; }
+
+/* input hint */
+.es-hint {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 13px; border-radius: var(--r-md);
+  background: rgba(255,255,255,.025); border: 1px dashed var(--glass-edge);
+  font-size: 12px; color: var(--ink-3); width: 100%; max-width: 280px; text-align: left;
+}
+.es-hint .ic { color: var(--ink-3); flex: 0 0 auto; }
+
+/* library / runs / overview zero-state grid */
+.es-grid { display: flex; flex-direction: column; gap: 9px; width: 100%; max-width: 280px; }
+.es-phantom {
+  height: 62px; border-radius: var(--r-md);
+  background: rgba(255,255,255,.02); border: 1px dashed var(--line);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11.5px; color: var(--ink-3);
+}
+.es-phantom.tall { height: 80px; }
+
+/* stat row (zeroed) */
+.es-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; max-width: 280px; }
+.es-stat { background: rgba(255,255,255,.02); border: 1px dashed var(--line); border-radius: var(--r-md); padding: 11px 13px; }
+.es-stat .v { font-size: 22px; font-weight: 600; color: var(--line-2); letter-spacing: -.02em; }
+.es-stat .k { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); margin-top: 5px; }
+
+/* "all caught up" checkmark */
+.es-check {
+  width: 56px; height: 56px; border-radius: 50%; flex: 0 0 auto;
+  background: var(--ok-soft); border: 1px solid var(--ok-line);
+  display: flex; align-items: center; justify-content: center; color: var(--ok);
+}
+
+/* connection status for first-launch overview */
+.es-connrow {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 13px; border-radius: var(--r-md);
+  background: var(--danger-soft); border: 1px solid var(--danger-line);
+  font-size: 12px; color: var(--danger); width: 100%; max-width: 280px;
+}
+.es-connrow .ic { flex: 0 0 auto; }
+.es-connrow b { color: var(--ink); }
+.es-connrow .link { margin-left: auto; color: var(--accent); font-size: 11.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
