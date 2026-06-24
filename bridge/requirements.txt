@@ -1,0 +1,2 @@
+# No third-party dependencies — bridge uses Python stdlib only (http.server, urllib)
+# Python 3.10+ required

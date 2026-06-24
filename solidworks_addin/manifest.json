@@ -1,0 +1,25 @@
+{
+  "id": "orynd-cad-bridge-solidworks-addin",
+  "working_name": "ORYND CAD Bridge",
+  "type": "solidworks-com-addin",
+  "prototype_version": "0.1.0",
+  "bridge_default_url": "http://127.0.0.1:8765",
+  "entry_project": "ORYNDCadBridgeAddin/ORYNDCadBridgeAddin.csproj",
+  "current_capabilities": [
+    "right_side_task_pane_scaffold",
+    "open_local_companion_ui",
+    "request_macro_preview_from_local_bridge",
+    "show_preview_response_in_task_pane"
+  ],
+  "blocked_until_windows_solidworks": [
+    "compile_against_solidworks_interop",
+    "register_com_addin",
+    "verify_toolbar_and_addin_lifecycle",
+    "verify_macro_runtime_execution"
+  ],
+  "security_policy": {
+    "default_bridge_scope": "localhost",
+    "macro_execution": "disabled_in_scaffold",
+    "requires_user_approval_before_future_execution": true
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "autodeskProduct": "Fusion",
+  "type": "addin",
+  "id": "ai.orynd.fusion360.cadbridge",
+  "author": "ORYND",
+  "description": {
+    "": "ORYND CAD Bridge — AI-powered macro generation for Fusion 360"
+  },
+  "version": "0.1.0",
+  "runOnStartup": true,
+  "supportedOS": "windows|mac",
+  "editEnabled": true
+}

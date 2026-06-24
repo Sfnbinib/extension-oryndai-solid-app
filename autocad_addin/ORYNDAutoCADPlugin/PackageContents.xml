@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ApplicationPackage SchemaVersion="1.0"
+  ProductCode="{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
+  Name="ORYND CAD Bridge"
+  Description="AI-powered macro generation for AutoCAD"
+  Author="ORYND"
+  Version="0.1.0"
+  Icon="./Contents/Resources/orynd_icon.png"
+  SupportedLocales="en-US">
+
+  <CompanyDetails Name="ORYND" Phone="" Url="https://orynd.ai" Email="hello@orynd.ai"/>
+
+  <RuntimeRequirements OS="Win64" Platform="AutoCAD" SeriesMin="R24.0" SeriesMax="*"/>
+
+  <Components Description="ORYND AutoCAD Components">
+
+    <!-- AutoLISP loader — works on Windows and Mac -->
+    <RuntimeRequirements OS="Win64|Mac" Platform="AutoCAD" SeriesMin="R24.0" SeriesMax="*"/>
+    <ComponentEntry AppName="ORYNDLoader"
+      ModuleName="./Contents/AutoLISP/orynd_loader.lsp"
+      AppType="AutoCADPlugin"
+      LoadOnAutoCADStartup="True"/>
+
+    <!-- .NET plugin — Windows only, gives task pane UI -->
+    <RuntimeRequirements OS="Win64" Platform="AutoCAD" SeriesMin="R24.0" SeriesMax="*"/>
+    <ComponentEntry AppName="ORYNDTaskPane"
+      ModuleName="./Contents/Windows/ORYNDAutoCAD.dll"
+      AppType="ManagedDbApplication"
+      LoadOnAutoCADStartup="True"/>
+
+  </Components>
+</ApplicationPackage>
