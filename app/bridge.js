@@ -5,9 +5,22 @@
  */
 const http = require('node:http')
 const https = require('node:https')
+const fs = require('node:fs')
+const path = require('node:path')
 const { URL } = require('node:url')
 
 const DEFAULT_BACKEND = process.env.ORYND_BACKEND || 'https://api.oryndai.com'
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript; charset=utf-8',
+  '.jsx': 'text/babel; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.woff2': 'font/woff2',
+}
 
 const CLOUD_DESIGN_HTML = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><title>ORYND</title>
@@ -80,6 +93,30 @@ function forward(method, path, bodyObj) {
   })
 }
 
+// Backend /chat streams NDJSON ({type:"text",content}, {type:"done"}, …).
+// Pull a single human message out of either NDJSON or a plain JSON response.
+function extractMessage(data) {
+  if (data && typeof data.content === 'string' && data.content) return data.content
+  if (data && typeof data.message === 'string' && data.message) return data.message
+  if (data && typeof data.raw === 'string') {
+    let text = ''
+    let err = ''
+    for (const line of data.raw.split('\n')) {
+      const t = line.trim()
+      if (!t) continue
+      try {
+        const ev = JSON.parse(t)
+        if (ev.type === 'text' && ev.content) text += ev.content
+        else if (ev.type === 'error' && ev.message) err = ev.message
+      } catch {
+        /* skip non-JSON line */
+      }
+    }
+    return text || err || ''
+  }
+  return ''
+}
+
 function sendJson(res, code, obj) {
   const body = Buffer.from(JSON.stringify(obj))
   res.writeHead(code, {
@@ -90,7 +127,19 @@ function sendJson(res, code, obj) {
   res.end(body)
 }
 
-function createServer() {
+function serveFile(res, filePath) {
+  fs.readFile(filePath, (err, data) => {
+    if (err) return sendJson(res, 404, { error: 'not found' })
+    const ext = path.extname(filePath).toLowerCase()
+    res.writeHead(200, {
+      'Content-Type': MIME[ext] || 'application/octet-stream',
+      'Content-Length': data.length,
+    })
+    res.end(data)
+  })
+}
+
+function createServer(rendererDir) {
   return http.createServer(async (req, res) => {
     if (req.method === 'OPTIONS') {
       res.writeHead(204, {
@@ -101,7 +150,9 @@ function createServer() {
       return res.end()
     }
 
-    if (req.method === 'GET' && req.url === '/cloud-design') {
+    // The product UI (OryndApp) — served as the window AND the in-CAD pane.
+    if (req.method === 'GET' && (req.url === '/' || req.url === '/cloud-design')) {
+      if (rendererDir) return serveFile(res, path.join(rendererDir, 'index.html'))
       const body = Buffer.from(CLOUD_DESIGN_HTML)
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Content-Length': body.length })
       return res.end(body)
@@ -132,18 +183,25 @@ function createServer() {
           context: payload.context || {},
           mode: 'auto',
         })
-        sendJson(res, code, { message: data.content || '', raw: data })
+        sendJson(res, code, { message: extractMessage(data), raw: data })
       })
       return
+    }
+
+    // Static assets for the UI (cad/*.jsx, _ds/*, brand). GET only, path-safe.
+    if (req.method === 'GET' && rendererDir) {
+      const rel = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '')
+      const target = path.normalize(path.join(rendererDir, rel))
+      if (target.startsWith(rendererDir)) return serveFile(res, target)
     }
 
     sendJson(res, 404, { error: 'not found' })
   })
 }
 
-/** Start the bridge. Returns the http.Server. */
-function startBridge(port = 8765) {
-  const server = createServer()
+/** Start the bridge. Returns the http.Server. rendererDir = folder with index.html + assets. */
+function startBridge(port = 8765, rendererDir = null) {
+  const server = createServer(rendererDir)
   server.listen(port, '127.0.0.1', () => {
     console.log(`[bridge] running on http://127.0.0.1:${port} → ${DEFAULT_BACKEND}`)
   })

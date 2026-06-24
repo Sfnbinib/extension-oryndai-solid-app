@@ -3,113 +3,53 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ORYND Extension</title>
+<title>ORYND CAD Bridge</title>
+
+<!-- ORYND brand fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+
+<!-- React + Babel (pinned, same as design prototype) -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+
+<!-- ORYND design system -->
+<link rel="stylesheet" href="_ds/orynd-ai-design-system-4c16c3b2-d926-45e8-90c1-7f084df96f3c/colors_and_type.css">
+<script src="_ds/orynd-ai-design-system-4c16c3b2-d926-45e8-90c1-7f084df96f3c/_ds_bundle.js"></script>
+
+<!-- CAD Bridge theme -->
+<link rel="stylesheet" href="cad/cad-theme.css">
+
+<!-- Lucide icons -->
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+
 <style>
-  :root { --bg:#0f1117; --panel:#1e293b; --sub:#0f172a; --tx:#e2e8f0; --mut:#64748b; --ac:#6366f1; }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family:-apple-system,BlinkMacSystemFont,sans-serif; background:var(--bg);
-         color:var(--tx); height:100vh; display:flex; flex-direction:column; }
-  header { padding:16px 18px; border-bottom:1px solid #1e293b; display:flex; align-items:center; gap:10px; }
-  .logo { width:26px; height:26px; border-radius:7px; background:var(--ac); display:flex;
-          align-items:center; justify-content:center; font-weight:800; font-size:13px; }
-  h1 { font-size:14px; margin:0; font-weight:700; }
-  .sub { font-size:11px; color:var(--mut); margin-top:2px; }
-  main { flex:1; overflow:auto; padding:16px 18px; }
-  .card { background:var(--panel); border-radius:10px; padding:14px; margin-bottom:12px; }
-  .card h2 { font-size:12px; margin:0 0 10px; color:var(--mut); text-transform:uppercase; letter-spacing:.04em; }
-  .cad-row { display:flex; align-items:center; justify-content:space-between; padding:8px 10px;
-             background:var(--sub); border-radius:7px; margin-bottom:8px; font-size:13px; }
-  .cad-row:last-child { margin-bottom:0; }
-  .dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:7px; }
-  .dot.on { background:#22c55e; } .dot.off { background:#475569; }
-  button { background:var(--ac); color:#fff; border:none; padding:6px 14px; border-radius:6px;
-           font-size:12px; cursor:pointer; } button:hover { background:#4f46e5; }
-  button.ghost { background:transparent; border:1px solid #334155; color:var(--tx); }
-  .banner { background:#1e1a2e; color:#a78bfa; padding:10px 14px; border-radius:8px;
-            font-size:12px; margin-bottom:12px; display:none; }
-  .status { font-size:11px; color:var(--mut); margin-top:6px; }
-  .ok { color:#22c55e; } .err { color:#ef4444; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg, #1a1916); }
+  #root { height: 100vh; }
 </style>
 </head>
 <body>
-  <header>
-    <div class="logo">O</div>
-    <div>
-      <h1>ORYND Extension</h1>
-      <div class="sub" id="bridge-sub">Bridge: starting…</div>
-    </div>
-  </header>
-  <main>
-    <div class="banner" id="update-banner"></div>
+<div id="root"></div>
 
-    <div class="card">
-      <h2>Your CAD applications</h2>
-      <div id="cad-list">Detecting…</div>
-    </div>
+<!-- OryndApp dependency chain (gallery/showcase files intentionally omitted) -->
+<script type="text/babel" src="cad/cad-icons.jsx"></script>
+<script type="text/babel" src="cad/cad-components.jsx"></script>
+<script type="text/babel" src="cad/cad-taskpane.jsx"></script>
+<script type="text/babel" src="cad/cad-dashboard.jsx"></script>
+<script type="text/babel" src="cad/cad-selection.jsx"></script>
+<script type="text/babel" src="cad/cad-screens.jsx"></script>
+<script type="text/babel" src="cad/cad-app.jsx"></script>
 
-    <div class="card">
-      <h2>How it works</h2>
-      <div style="font-size:12px; color:var(--mut); line-height:1.6">
-        1. Enable your CAD above — the add-in installs automatically.<br>
-        2. Open your CAD app — the ORYND panel appears inside it.<br>
-        3. Type what you want to build. ORYND does the rest.
-      </div>
-    </div>
-  </main>
-
-<script>
-const CAD_NAMES = { fusion360: 'Autodesk Fusion 360', autocad: 'AutoCAD', solidworks: 'SolidWorks' };
-
-async function refreshBridge() {
-  try {
-    const s = await window.orynd.bridgeStatus();
-    document.getElementById('bridge-sub').innerHTML =
-      s.running ? 'Bridge: <span class="ok">running on 127.0.0.1:' + s.port + '</span>'
-                : 'Bridge: <span class="err">stopped</span>';
-  } catch (e) { document.getElementById('bridge-sub').textContent = 'Bridge: error'; }
-}
-
-async function refreshCad() {
-  const supported = await window.orynd.supportedCad();
-  const running = await window.orynd.detectCad();
-  const el = document.getElementById('cad-list');
-  el.innerHTML = '';
-  for (const cad of supported) {
-    const isRunning = running.includes(cad);
-    const row = document.createElement('div');
-    row.className = 'cad-row';
-    row.innerHTML =
-      '<span><span class="dot ' + (isRunning ? 'on' : 'off') + '"></span>' +
-      CAD_NAMES[cad] + (isRunning ? ' — running' : '') + '</span>';
-    const btn = document.createElement('button');
-    btn.textContent = 'Enable';
-    btn.onclick = async () => {
-      btn.textContent = 'Installing…'; btn.disabled = true;
-      const r = await window.orynd.installAddin(cad);
-      const note = document.createElement('div');
-      note.className = 'status ' + (r.ok ? 'ok' : 'err');
-      note.textContent = r.ok ? ('Installed → ' + r.target + (r.manual ? ' (' + r.manual + ')' : ''))
-                              : ('Failed: ' + r.error);
-      row.after(note);
-      btn.textContent = r.ok ? 'Enabled ✓' : 'Retry';
-      btn.disabled = false;
-    };
-    row.appendChild(btn);
-    el.appendChild(row);
-  }
-}
-
-window.orynd.onUpdate((info) => {
-  const b = document.getElementById('update-banner');
-  b.style.display = 'block';
-  b.textContent = info.forced
-    ? 'Update ' + info.version + ' installing automatically…'
-    : 'Update ' + info.version + ' available. It will auto-install after a few launches.';
-});
-
-refreshBridge();
-refreshCad();
-setInterval(refreshCad, 5000);
+<!-- mount the live task pane -->
+<script type="text/babel" data-presets="react">
+(function mount() {
+  if (!window.OryndApp) { setTimeout(mount, 30); return; }
+  ReactDOM.createRoot(document.getElementById('root')).render(
+    React.createElement(window.OryndApp)
+  );
+})();
 </script>
 </body>
 </html>

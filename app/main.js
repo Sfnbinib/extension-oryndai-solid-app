@@ -40,7 +40,14 @@ function createWindow() {
       nodeIntegration: false,
     },
   })
-  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'))
+  // Load over HTTP from the local bridge (not file://) so the in-browser
+  // Babel/JSX loader can fetch component sources.
+  const url = `http://127.0.0.1:${BRIDGE_PORT}/`
+  mainWindow.loadURL(url)
+  // Bridge listen is async — retry if the window beat it to the port.
+  mainWindow.webContents.on('did-fail-load', () => {
+    setTimeout(() => mainWindow && mainWindow.loadURL(url), 250)
+  })
 
   // Closing hides to tray instead of quitting.
   mainWindow.on('close', (e) => {
@@ -101,7 +108,7 @@ function registerIpc() {
 }
 
 app.whenReady().then(() => {
-  bridgeServer = startBridge(BRIDGE_PORT)
+  bridgeServer = startBridge(BRIDGE_PORT, path.join(__dirname, 'renderer'))
   registerIpc()
   createWindow()
   createTray()
