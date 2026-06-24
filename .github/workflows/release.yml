@@ -1,0 +1,41 @@
+name: Build & Release ORYND Extension
+
+# Push a version tag to build installers for both platforms and publish them
+# to a GitHub Release (DMG for macOS, EXE for Windows).
+#   git tag v0.1.0 && git push origin v0.1.0
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        working-directory: app
+        run: npm install
+
+      - name: Build & publish (macOS)
+        if: matrix.os == 'macos-latest'
+        working-directory: app
+        run: npx electron-builder --mac --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & publish (Windows)
+        if: matrix.os == 'windows-latest'
+        working-directory: app
+        run: npx electron-builder --win --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

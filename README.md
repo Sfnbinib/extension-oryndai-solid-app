@@ -21,39 +21,38 @@ The add-in never talks to the internet directly. Your CAD files stay on your mac
 
 ---
 
-## Quick start
+## Quick start (recommended — installer)
 
-### 1 — Start the local bridge
+1. Download the installer for your OS from
+   [**Releases**](https://github.com/Sfnbinib/extension-oryndai-solid-app/releases):
+   - **macOS** → `ORYND Extension-x.y.z.dmg`
+   - **Windows** → `ORYND Extension Setup x.y.z.exe`
+2. Install and launch **ORYND Extension**. It runs in the menu bar / system tray.
+3. In the app, click **Enable** next to your CAD — the add-in installs itself.
+4. Open your CAD app. The ORYND panel appears inside it automatically.
 
-The bridge requires **Python 3.10+** and no additional packages.
+No Python, no terminal. The bridge runs inside the app, and updates install
+themselves (after a few launches).
+
+---
+
+## Advanced — run the bridge manually (developers)
+
+If you only want the bridge without the desktop app, it runs on Python stdlib
+(3.10+, no pip install):
 
 ```bash
-# Mac / Linux
-python bridge/bridge.py
-
-# Windows
-python bridge\bridge.py
+python bridge/bridge.py            # mac / linux
+python bridge\bridge.py            # windows
 ```
 
-You should see:
-```
-ORYND Bridge running on http://127.0.0.1:8765
-```
+Then install the add-in for your CAD by hand:
 
-Keep this terminal open while using your CAD app.
-
-### 2 — Install the add-in for your CAD
-
-| CAD | Install guide |
+| CAD | Manual install guide |
 |-----|---------------|
 | Autodesk Fusion | [docs/INSTALL_FUSION360.md](docs/INSTALL_FUSION360.md) |
 | AutoCAD | [docs/INSTALL_AUTOCAD.md](docs/INSTALL_AUTOCAD.md) |
 | SolidWorks | [docs/INSTALL_SOLIDWORKS.md](docs/INSTALL_SOLIDWORKS.md) |
-
-### 3 — Open your CAD app and use ORYND
-
-The ORYND panel appears in the toolbar (Fusion / AutoCAD) or as a task pane
-(SolidWorks). Type a prompt and press **Generate**.
 
 ---
 
