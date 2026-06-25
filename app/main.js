@@ -29,9 +29,12 @@ if (!app.requestSingleInstanceLock()) {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 380,
-    height: 560,
-    resizable: false,
+    width: 480,
+    height: 760,
+    minWidth: 360,
+    minHeight: 520,
+    maxWidth: 960,
+    resizable: true,
     show: false,
     title: 'ORYND Extension',
     webPreferences: {
@@ -65,10 +68,12 @@ function showWindow() {
 }
 
 function trayIcon() {
-  // Minimal 16x16 indigo square; replaced by real asset in packaged build.
   const png = path.join(__dirname, 'assets', 'tray.png')
   const img = nativeImage.createFromPath(png)
-  return img.isEmpty() ? nativeImage.createEmpty() : img
+  if (img.isEmpty()) return nativeImage.createEmpty()
+  // Template image → macOS auto-adapts to light/dark menu bar.
+  if (process.platform === 'darwin') img.setTemplateImage(true)
+  return img
 }
 
 function createTray() {
