@@ -11,6 +11,7 @@ const { startBridge } = require('./bridge')
 const { detectRunningCad, supportedCad } = require('./cad_detect')
 const { installAddin } = require('./addin_installer')
 const { initUpdater } = require('./updater')
+const logger = require('./logger')
 
 const BRIDGE_PORT = 8765
 
@@ -112,10 +113,15 @@ function registerIpc() {
     port: BRIDGE_PORT,
   }))
   ipcMain.handle('window:hide', () => mainWindow && mainWindow.hide())
+  // For the in-app Feedback button: collect recent logs (days: 1 / 7 / 30).
+  ipcMain.handle('logs:collect', (_e, days) => logger.collect(days || 7))
 }
 
 app.whenReady().then(() => {
+  logger.init(app.getPath('userData'))
+  logger.info(`app start v${app.getVersion()} on ${process.platform}`)
   bridgeServer = startBridge(BRIDGE_PORT, path.join(__dirname, 'renderer'))
+  logger.info(`bridge started on ${BRIDGE_PORT}`)
   registerIpc()
   createWindow()
   createTray()
