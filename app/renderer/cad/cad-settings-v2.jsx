@@ -5,27 +5,56 @@ const _s2 = React.createElement;
 const S2I = window.CADIcons;
 
 // ---------- API KEY field (states: empty | saving | connected | error) ----------
-function ApiKeyField({ state = 'empty' }) {
-  const val = state === 'empty' ? '' : 'sk-orynd-••••••••••••••••3f9a';
+function ApiKeyField({ initialState = 'empty', onSaveKey }) {
+  const [state, setState] = React.useState(initialState);
+  const [val, setVal] = React.useState('');
+
+  const save = async () => {
+    if (!val.trim()) return;
+    setState('saving');
+    try {
+      const result = onSaveKey ? await onSaveKey(val.trim()) : { ok: false };
+      setState(result && result.ok ? 'connected' : 'error');
+      if (result && result.ok) setVal('');
+    } catch {
+      setState('error');
+    }
+  };
+
+  const replace = () => { setState('empty'); setVal(''); };
+
+  const masked = 'sk-ant-••••••••••••••••••••';
   return _s2('div', { className: 'tp-set-group' },
-    _s2('div', { className: 'tp-set-glabel' }, 'ORYND API KEY'),
+    _s2('div', { className: 'tp-set-glabel' }, 'ANTHROPIC API KEY'),
     _s2('div', { className: 'tp-apikey' },
       _s2('div', { className: 'tp-apikey-field ' + (state === 'connected' ? 'ok' : state === 'error' ? 'err' : '') },
         _s2(S2I.Lock, { size: 14, style: { color: 'var(--ink-3)', flex: '0 0 auto' } }),
-        _s2('input', { placeholder: 'Enter your key', defaultValue: val, readOnly: true, type: 'text' }),
         state === 'connected'
-          ? _s2('button', { className: 'tp-cadconn-btn manage', style: { height: 28 } }, 'Replace')
-          : _s2('button', { className: 'tp-apikey-done', disabled: state === 'saving' },
-              state === 'saving' ? 'Saving' : 'Done'),
+          ? _s2('input', { value: masked, readOnly: true, type: 'text' })
+          : _s2('input', {
+              placeholder: 'sk-ant-...',
+              value: val,
+              type: 'password',
+              autoComplete: 'off',
+              onChange: (e) => { setVal(e.target.value); if (state === 'error') setState('empty'); },
+              onKeyDown: (e) => { if (e.key === 'Enter') save(); },
+            }),
+        state === 'connected'
+          ? _s2('button', { className: 'tp-cadconn-btn manage', style: { height: 28 }, onClick: replace }, 'Replace')
+          : _s2('button', {
+              className: 'tp-apikey-done',
+              disabled: state === 'saving' || !val.trim(),
+              onClick: save,
+            }, state === 'saving' ? 'Saving…' : 'Done'),
       ),
       state === 'saving' && _s2('div', { className: 'tp-apikey-status saving' },
         _s2('span', { className: 'spin' }), 'Verifying key…'),
       state === 'connected' && _s2('div', { className: 'tp-apikey-status ok' },
         _s2(S2I.CheckCircle, { size: 14 }), 'Connected · key verified'),
       state === 'error' && _s2('div', { className: 'tp-apikey-status err' },
-        _s2(S2I.XCircle, { size: 14 }), 'Invalid key — check it and try again'),
+        _s2(S2I.XCircle, { size: 14 }), 'Invalid key — check and try again'),
       state === 'empty' && _s2('div', { className: 'tp-set-sub', style: { padding: '9px 0 0' } },
-        'Bring your own key to use ORYND Cloud routing. Find it in your account on the site.'),
+        'Paste your Anthropic key. It stays on your device — never sent to our servers.'),
     ),
   );
 }
@@ -65,7 +94,7 @@ function Appearance({ theme = 'dark' }) {
 }
 
 // ---------- full Settings v2 screen ----------
-function SettingsV2({ light = false, apiState = 'empty', theme = 'dark', onBack, onSignOut }) {
+function SettingsV2({ light = false, llmState = 'empty', theme = 'dark', onBack, onSignOut, onSaveKey }) {
   const C = window.CAD;
   return _s2('div', { className: 'tp' + (light ? ' light' : ''), style: { width: '100%', height: '100%' } },
     _s2('div', { className: 'tp-shell' },
@@ -100,7 +129,7 @@ function SettingsV2({ light = false, apiState = 'empty', theme = 'dark', onBack,
             ),
           ),
         ),
-        _s2(ApiKeyField, { state: apiState }),
+        _s2(ApiKeyField, { initialState: llmState, onSaveKey }),
         _s2(CadConnections),
         _s2(Appearance, { theme }),
       ),

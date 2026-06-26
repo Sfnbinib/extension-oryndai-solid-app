@@ -167,6 +167,34 @@ function createServer(rendererDir) {
       return sendJson(res, code, data)
     }
 
+    // LLM status — asks backend if any provider is active (Claude key or Ollama).
+    // Normalises the backend's {claude_key, ollama_up} into {active, provider}.
+    if (req.method === 'GET' && req.url === '/api/llm-status') {
+      const [code, data] = await forward('GET', '/llm/status')
+      if (code === 200 && data && (data.claude_key !== undefined || data.ollama_up !== undefined)) {
+        const active = !!(data.claude_key || data.ollama_up)
+        const provider = data.claude_key ? 'claude' : data.ollama_up ? 'ollama' : null
+        return sendJson(res, 200, { active, provider, orchestrator: data.orchestrator })
+      }
+      // Backend unreachable or no endpoint → report inactive
+      return sendJson(res, 200, { active: false, provider: null })
+    }
+
+    // API key registration — stores key in backend process env (session-scoped, never logged).
+    if (req.method === 'POST' && req.url === '/api/key') {
+      let raw = ''
+      req.on('data', (c) => (raw += c))
+      req.on('end', async () => {
+        let payload = {}
+        try { payload = JSON.parse(raw || '{}') } catch { return sendJson(res, 400, { error: 'invalid JSON' }) }
+        const key = (payload.key || '').trim()
+        if (!key) return sendJson(res, 400, { error: 'key required' })
+        const [code, data] = await forward('POST', '/llm/key', { key })
+        sendJson(res, code, data && data.ok ? { ok: true } : { ok: false, error: 'backend rejected key' })
+      })
+      return
+    }
+
     if (req.method === 'POST' && req.url === '/api/generate') {
       let raw = ''
       req.on('data', (c) => (raw += c))
