@@ -16,7 +16,7 @@ function GoogleGlyph({ size = 18 }) {
 }
 
 // ---------- SIGN-IN / LOGGED-OUT GATE ----------
-function SignInScreen({ subtext, light } = {}) {
+function SignInScreen({ subtext, light, onSignIn } = {}) {
   return _uh('div', { className: 'tp' + (light ? ' light' : ''), style: { width: '100%', height: '100%' } },
     _uh('div', { className: 'tp-shell' },
       _uh('div', { className: 'tp-onb' },
@@ -30,9 +30,9 @@ function SignInScreen({ subtext, light } = {}) {
             _uh('p', { className: 'tp-auth-sub' },
               subtext || 'Your CAD copilot for SolidWorks. Sign in to sync parts, recipes, and your subscription.'),
             _uh('div', { className: 'tp-auth-btns' },
-              _uh('button', { className: 'tp-oauth-btn' },
+              _uh('button', { className: 'tp-oauth-btn', onClick: onSignIn || undefined },
                 _uh(GoogleGlyph, { size: 18 }), 'Continue with Google'),
-              _uh('button', { className: 'tp-oauth-btn' },
+              _uh('button', { className: 'tp-oauth-btn', onClick: onSignIn || undefined },
                 _uh(UI.Mail || UI.File, { size: 17 }), 'Continue with email'),
             ),
             _uh('div', { className: 'tp-auth-foot' },

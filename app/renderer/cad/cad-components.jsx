@@ -6,23 +6,55 @@ const I = window.CADIcons;
 const h = React.createElement;
 
 // ---------- HEADER ----------
-function Header({ connection = 'connected', route = 'ORYND', onSettings, onBell }) {
+// Header — when `user` prop provided, replaces settings gear with AccountChip + dropdown menu.
+function Header({ connection = 'connected', route = 'ORYND', onSettings, onBell, onSignOut, user }) {
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const menuRef = React.useRef(null);
+  React.useEffect(() => {
+    if (!menuOpen) return;
+    const close = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [menuOpen]);
+
   const chips = {
     connected: h('span', { className: 'tp-chip is-ok is-live' }, h('span', { className: 'dot' }), 'Connected'),
     offline:   h('span', { className: 'tp-chip is-off' }, h('span', { className: 'dot' }), 'Offline'),
   };
-  return h('div', { className: 'tp-head' },
-    h('div', { className: 'tp-logo' },
-      h('div', { className: 'tp-mark' }, h('img', { src: 'cad/brand/orynd-orbit-white.png', alt: 'ORYND', style: { width: 16, height: 'auto', display: 'block' } })),
-      h('span', { className: 'tp-name' }, h('b', null, 'ORYND'), ' CAD Bridge'),
+  return h('div', { style: { position: 'relative' }, ref: menuRef },
+    h('div', { className: 'tp-head' },
+      h('div', { className: 'tp-logo' },
+        h('div', { className: 'tp-mark' }, h('img', { src: 'cad/brand/orynd-orbit-white.png', alt: 'ORYND', style: { width: 16, height: 'auto', display: 'block' } })),
+        h('span', { className: 'tp-name' }, h('b', null, 'ORYND'), ' CAD Bridge'),
+      ),
+      h('div', { className: 'tp-head-spacer' }),
+      chips[connection === 'offline' ? 'offline' : 'connected'],
+      h('span', { className: 'tp-bell-wrap' },
+        h('button', { className: 'tp-icon-btn', title: 'Notifications', onClick: onBell || undefined }, h(I.Bell, { size: 16 })),
+        h('span', { className: 'tp-bell-dot' }),
+      ),
+      user
+        ? h('button', { className: 'tp-acctchip' + (menuOpen ? ' open' : ''), title: 'Account', onClick: () => setMenuOpen(o => !o) },
+            h('span', { className: 'av' }, user.initials || 'U'))
+        : h('button', { className: 'tp-icon-btn', title: 'Settings', onClick: onSettings || undefined }, h(I.Settings, { size: 16 })),
     ),
-    h('div', { className: 'tp-head-spacer' }),
-    chips[connection === 'offline' ? 'offline' : 'connected'],
-    h('span', { className: 'tp-bell-wrap' },
-      h('button', { className: 'tp-icon-btn', title: 'Notifications', onClick: onBell || undefined }, h(I.Bell, { size: 16 })),
-      h('span', { className: 'tp-bell-dot' }),
+    user && menuOpen && h('div', { className: 'tp-acctmenu' },
+      h('div', { className: 'tp-acctmenu-head' },
+        h('span', { className: 'av' }, user.initials || 'U'),
+        h('div', { className: 'who' },
+          h('div', { className: 'e' }, user.email || ''),
+          h('div', { className: 'pl' }, h('span', { className: 'tp-plan-badge', style: { fontSize: 9, padding: '2px 7px' } }, user.plan || 'Free')),
+        ),
+      ),
+      h('div', { className: 'tp-acctmenu-sep' }),
+      h('button', { className: 'tp-acctmenu-item', onClick: () => { setMenuOpen(false); window.open('https://oryndai.com/billing'); } },
+        h(I.Spark, { size: 15 }), 'Manage subscription', h('span', { className: 'ext' }, h(I.Arrow, { size: 13 }))),
+      h('button', { className: 'tp-acctmenu-item', onClick: () => { setMenuOpen(false); onSettings && onSettings(); } },
+        h(I.Settings, { size: 15 }), 'Settings'),
+      h('div', { className: 'tp-acctmenu-sep' }),
+      h('button', { className: 'tp-acctmenu-item danger', onClick: () => { setMenuOpen(false); onSignOut && onSignOut(); } },
+        h(I.Plug, { size: 15 }), 'Sign out'),
     ),
-    h('button', { className: 'tp-icon-btn', title: 'Settings', onClick: onSettings || undefined }, h(I.Settings, { size: 16 })),
   );
 }
 

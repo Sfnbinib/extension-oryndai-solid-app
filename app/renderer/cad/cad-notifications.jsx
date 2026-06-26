@@ -144,12 +144,12 @@ function NotificationsPane({ connection = 'connected', onBack }) {
 }
 
 // Empty notifications pane (all caught up)
-function NotificationsEmpty({ connection = 'connected' }) {
+function NotificationsEmpty({ connection = 'connected', onBack }) {
   return _nh('div', { className: 'tp', style: { width: '100%', height: '100%' } },
     _nh('div', { className: 'tp-shell' },
       _nh(NC.Header, { connection }),
       _nh('div', { className: 'tp-backbar' },
-        _nh('button', { className: 'tp-back' }, _nh(NI.ChevronR, { size: 16, style: { transform: 'scaleX(-1)' } })),
+        _nh('button', { className: 'tp-back', onClick: onBack || undefined }, _nh(NI.ChevronR, { size: 16, style: { transform: 'scaleX(-1)' } })),
         _nh('span', { className: 'bt' }, 'Notifications'),
       ),
       _nh('div', { className: 'tp-body' },

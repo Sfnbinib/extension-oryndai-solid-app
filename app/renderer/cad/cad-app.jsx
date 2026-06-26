@@ -58,12 +58,17 @@ function RunsBody() {
   );
 }
 
+// Placeholder user — replace with real Supabase session when auth is wired.
+const PLACEHOLDER_USER = { initials: 'SF', email: 'savelij@orynd.ai', plan: 'Pro · trial' };
+
 function OryndApp() {
   const C = window.CAD;
   const E = window.EMPTY;
-  const [view, setView] = React.useState('chat'); // chat | library | runs | overview | settings
+  // Auth gate — false shows SignInScreen. Real Supabase deep-link sets this to true.
+  const [loggedIn, setLoggedIn] = React.useState(false);
+  const [view, setView] = React.useState('chat'); // chat | library | runs | overview | settings | notifications
   // Real update banner: hidden until electron-updater finds a newer GitHub release.
-  const [update, setUpdate] = React.useState(null); // { version } | null
+  const [update, setUpdate] = React.useState(null);
   // Chat history — empty by default (no mock data). Populated as the user chats.
   const [msgs, setMsgs] = React.useState([]);
   const [sending, setSending] = React.useState(false);
@@ -71,6 +76,11 @@ function OryndApp() {
   React.useEffect(() => {
     if (window.orynd && window.orynd.onUpdate) window.orynd.onUpdate((info) => setUpdate(info));
   }, []);
+
+  // Auth gate — show sign-in until logged in.
+  if (!loggedIn) {
+    return _ah(window.AUTH.SignInScreen, { onSignIn: () => setLoggedIn(true) });
+  }
 
   const send = async (text) => {
     setView('chat');
@@ -92,20 +102,33 @@ function OryndApp() {
     }
   };
 
-  const goSettings = () => setView('settings');
+  const goSettings      = () => setView('settings');
   const goNotifications = () => setView('notifications');
-  const goChat = () => setView('chat');
+  const goChat          = () => setView('chat');
+  const signOut         = () => { setLoggedIn(false); setMsgs([]); setView('chat'); };
 
+  // Full-pane routes (no shell tabs).
   if (view === 'settings') {
     return _ah('div', { className: 'tp', style: { width: '100%', height: '100%' } },
       _ah(window.SETTINGS2.SettingsV2, { onBack: goChat }));
   }
-
   if (view === 'notifications') {
-    return _ah(window.NOTIF.NotificationsPane, { onBack: goChat });
+    const hasNotifs = window.NOTIF.NOTIFS && window.NOTIF.NOTIFS.length > 0;
+    return hasNotifs
+      ? _ah(window.NOTIF.NotificationsPane, { onBack: goChat })
+      : _ah(window.NOTIF.NotificationsEmpty, { onBack: goChat });
   }
 
-  // Zero-state screens (no data yet) — each is a full pane with its own shell.
+  // Shared header props — used by all main-shell views.
+  const headerProps = {
+    connection: 'connected',
+    onBell: goNotifications,
+    onSettings: goSettings,
+    onSignOut: signOut,
+    user: PLACEHOLDER_USER,
+  };
+
+  // Zero-state screens (no data yet) — each is a full pane with its own header/tabs.
   if (view === 'chat' && msgs.length === 0) {
     return _ah(E.ChatEmpty, { onTab: setView, onSettings: goSettings, onSend: send, onPick: send });
   }
@@ -119,10 +142,10 @@ function OryndApp() {
     return _ah(E.OverviewEmpty, { onTab: setView, onSettings: goSettings, onNew: goChat });
   }
 
-  // Chat with messages — interactive shell.
+  // Chat with messages — interactive shell with account chip.
   return _ah('div', { className: 'tp', style: { width: '100%', height: '100%' } },
     _ah('div', { className: 'tp-shell' },
-      _ah(C.Header, { connection: 'connected', route: 'ORYND', onSettings: goSettings, onBell: goNotifications }),
+      _ah(C.Header, headerProps),
       update && _ah(C.UpdateBanner, {
         version: update.version,
         onUpdate: () => { if (window.orynd && window.orynd.installUpdate) window.orynd.installUpdate(); },
