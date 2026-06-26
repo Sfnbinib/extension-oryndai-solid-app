@@ -6,7 +6,7 @@ const I = window.CADIcons;
 const h = React.createElement;
 
 // ---------- HEADER ----------
-function Header({ connection = 'connected', route = 'ORYND', onSettings }) {
+function Header({ connection = 'connected', route = 'ORYND', onSettings, onBell }) {
   const chips = {
     connected: h('span', { className: 'tp-chip is-ok is-live' }, h('span', { className: 'dot' }), 'Connected'),
     offline:   h('span', { className: 'tp-chip is-off' }, h('span', { className: 'dot' }), 'Offline'),
@@ -19,7 +19,7 @@ function Header({ connection = 'connected', route = 'ORYND', onSettings }) {
     h('div', { className: 'tp-head-spacer' }),
     chips[connection === 'offline' ? 'offline' : 'connected'],
     h('span', { className: 'tp-bell-wrap' },
-      h('button', { className: 'tp-icon-btn', title: 'Notifications' }, h(I.Bell, { size: 16 })),
+      h('button', { className: 'tp-icon-btn', title: 'Notifications', onClick: onBell || undefined }, h(I.Bell, { size: 16 })),
       h('span', { className: 'tp-bell-dot' }),
     ),
     h('button', { className: 'tp-icon-btn', title: 'Settings', onClick: onSettings || undefined }, h(I.Settings, { size: 16 })),

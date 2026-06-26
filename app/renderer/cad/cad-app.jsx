@@ -17,7 +17,7 @@ function ChatBody({ blocks, sending, onSend }) {
   return _ah(React.Fragment, null,
     _ah('div', { className: 'tp-body', ref: bodyRef },
       blocks.map(window.__renderBlock),
-      sending && _ah(C.AssistMsg, { em: 'working.' }, 'Thinking…'),
+      sending && _ah(window.THINK.ThinkingBubble),
     ),
     _ah(C.Composer, { route: 'ORYND', sending, onSend }),
   );
@@ -93,11 +93,16 @@ function OryndApp() {
   };
 
   const goSettings = () => setView('settings');
+  const goNotifications = () => setView('notifications');
   const goChat = () => setView('chat');
 
   if (view === 'settings') {
     return _ah('div', { className: 'tp', style: { width: '100%', height: '100%' } },
-      window.SCREENS.settings({ onBack: goChat }));
+      _ah(window.SETTINGS2.SettingsV2, { onBack: goChat }));
+  }
+
+  if (view === 'notifications') {
+    return _ah(window.NOTIF.NotificationsPane, { onBack: goChat });
   }
 
   // Zero-state screens (no data yet) — each is a full pane with its own shell.
@@ -117,7 +122,7 @@ function OryndApp() {
   // Chat with messages — interactive shell.
   return _ah('div', { className: 'tp', style: { width: '100%', height: '100%' } },
     _ah('div', { className: 'tp-shell' },
-      _ah(C.Header, { connection: 'connected', route: 'ORYND', onSettings: goSettings }),
+      _ah(C.Header, { connection: 'connected', route: 'ORYND', onSettings: goSettings, onBell: goNotifications }),
       update && _ah(C.UpdateBanner, {
         version: update.version,
         onUpdate: () => { if (window.orynd && window.orynd.installUpdate) window.orynd.installUpdate(); },
