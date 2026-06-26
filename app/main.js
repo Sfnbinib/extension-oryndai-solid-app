@@ -5,7 +5,7 @@
  * watches for running CAD apps, installs add-ins on demand, and auto-updates.
  * Closing the window hides to tray; quit from the tray menu.
  */
-const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage } = require('electron')
+const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell } = require('electron')
 const path = require('node:path')
 const { startBridge } = require('./bridge')
 const { detectRunningCad, supportedCad } = require('./cad_detect')
@@ -113,6 +113,9 @@ function registerIpc() {
     port: BRIDGE_PORT,
   }))
   ipcMain.handle('window:hide', () => mainWindow && mainWindow.hide())
+  ipcMain.handle('window:reload', () => mainWindow && mainWindow.webContents.reload())
+  // Open URL in system default browser — never inside Electron.
+  ipcMain.handle('shell:openExternal', (_e, url) => shell.openExternal(url))
   // For the in-app Feedback button: collect recent logs (days: 1 / 7 / 30).
   ipcMain.handle('logs:collect', (_e, days) => logger.collect(days || 7))
 }

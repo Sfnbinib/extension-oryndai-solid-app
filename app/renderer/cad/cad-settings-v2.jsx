@@ -85,7 +85,7 @@ function SettingsV2({ light = false, apiState = 'empty', theme = 'dark', onBack 
         ),
         // account actions
         _s2('div', { className: 'tp-set-group' },
-          _s2('button', { className: 'tp-set-row', style: { width: '100%', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid var(--glass-edge)' } },
+          _s2('button', { className: 'tp-set-row', style: { width: '100%', background: 'none', border: 'none', cursor: 'pointer', borderBottom: '1px solid var(--glass-edge)' }, onClick: () => window.orynd && window.orynd.openExternal('https://oryndai.com/billing') },
             _s2('span', { className: 'tp-set-ico' }, _s2(S2I.Spark, { size: 16 })),
             _s2('div', { className: 'tp-set-main', style: { textAlign: 'left' } },
               _s2('div', { className: 'tp-set-title' }, 'Manage subscription'),

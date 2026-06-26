@@ -18,7 +18,7 @@ function OrbitIllo() {
 }
 
 // ---------- CHAT — first launch, zero history ----------
-function ChatEmpty({ onTab, onSettings, onSend, onPick } = {}) {
+function ChatEmpty({ onTab, onSettings, onSend, onPick, user, onBell, onSignOut } = {}) {
   const suggestions = [
     { icon: EI.Circle,   text: 'Create a ventilated brake disc, Ø320' },
     { icon: EI.Settings, text: 'Make a 24-tooth spur gear, module 2' },
@@ -27,7 +27,7 @@ function ChatEmpty({ onTab, onSettings, onSend, onPick } = {}) {
   ];
   return _eh('div', { className: 'tp', style: { width: '100%', height: '100%' } },
     _eh('div', { className: 'tp-shell' },
-      _eh(EC.Header, { connection: 'connected', route: 'ORYND', onSettings }),
+      _eh(EC.Header, { connection: 'connected', route: 'ORYND', onSettings, onBell, onSignOut, user }),
       _eh(ED.PaneTabs, { active: 'chat', onTab }),
       _eh('div', { className: 'tp-body', style: { alignItems: 'center', justifyContent: 'center', paddingTop: 32 } },
         _eh(OrbitIllo),
@@ -52,10 +52,10 @@ function ChatEmpty({ onTab, onSettings, onSend, onPick } = {}) {
 }
 
 // ---------- LIBRARY — no automations yet ----------
-function LibraryEmpty({ onTab, onSettings, onNew } = {}) {
+function LibraryEmpty({ onTab, onSettings, onNew, user, onBell, onSignOut } = {}) {
   return _eh('div', { className: 'tp', style: { width: '100%', height: '100%' } },
     _eh('div', { className: 'tp-shell' },
-      _eh(EC.Header, { connection: 'connected', route: 'ORYND', onSettings }),
+      _eh(EC.Header, { connection: 'connected', route: 'ORYND', onSettings, onBell, onSignOut, user }),
       _eh(ED.PaneTabs, { active: 'library', onTab }),
       _eh('div', { className: 'tp-toolbar' },
         _eh('div', { className: 'tp-search', style: { opacity: .4 } },
@@ -82,10 +82,10 @@ function LibraryEmpty({ onTab, onSettings, onNew } = {}) {
 }
 
 // ---------- RUNS — no history yet ----------
-function RunsEmpty({ onTab, onSettings, onStart } = {}) {
+function RunsEmpty({ onTab, onSettings, onStart, user, onBell, onSignOut } = {}) {
   return _eh('div', { className: 'tp', style: { width: '100%', height: '100%' } },
     _eh('div', { className: 'tp-shell' },
-      _eh(EC.Header, { connection: 'connected', route: 'ORYND', onSettings }),
+      _eh(EC.Header, { connection: 'connected', route: 'ORYND', onSettings, onBell, onSignOut, user }),
       _eh(ED.PaneTabs, { active: 'runs', onTab }),
       _eh('div', { className: 'tp-body', style: { alignItems: 'center', justifyContent: 'center', paddingTop: 32 } },
         _eh('div', { className: 'es-grid', style: { marginBottom: 24 } },
@@ -101,10 +101,10 @@ function RunsEmpty({ onTab, onSettings, onStart } = {}) {
 }
 
 // ---------- OVERVIEW — brand-new user, zero data ----------
-function OverviewEmpty({ onTab, onSettings, onNew } = {}) {
+function OverviewEmpty({ onTab, onSettings, onNew, user, onBell, onSignOut } = {}) {
   return _eh('div', { className: 'tp', style: { width: '100%', height: '100%' } },
     _eh('div', { className: 'tp-shell' },
-      _eh(EC.Header, { connection: 'offline', route: 'ORYND', onSettings }),
+      _eh(EC.Header, { connection: 'offline', route: 'ORYND', onSettings, onBell, onSignOut, user }),
       _eh(ED.PaneTabs, { active: 'overview', onTab }),
       _eh('div', { className: 'tp-vd' },
         _eh('div', { className: 'tp-vd-hero' },

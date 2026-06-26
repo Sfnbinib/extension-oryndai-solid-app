@@ -119,27 +119,24 @@ function OryndApp() {
       : _ah(window.NOTIF.NotificationsEmpty, { onBack: goChat });
   }
 
-  // Shared header props — used by all main-shell views.
-  const headerProps = {
-    connection: 'connected',
-    onBell: goNotifications,
-    onSettings: goSettings,
-    onSignOut: signOut,
-    user: PLACEHOLDER_USER,
-  };
+  // Full header props for active chat shell.
+  const headerProps = { connection: 'connected', ...hCtx };
+
+  // Shared header context passed to all shells (empty states + active chat).
+  const hCtx = { user: PLACEHOLDER_USER, onBell: goNotifications, onSettings: goSettings, onSignOut: signOut };
 
   // Zero-state screens (no data yet) — each is a full pane with its own header/tabs.
   if (view === 'chat' && msgs.length === 0) {
-    return _ah(E.ChatEmpty, { onTab: setView, onSettings: goSettings, onSend: send, onPick: send });
+    return _ah(E.ChatEmpty, { onTab: setView, onSend: send, onPick: send, ...hCtx });
   }
   if (view === 'library') {
-    return _ah(E.LibraryEmpty, { onTab: setView, onSettings: goSettings, onNew: goChat });
+    return _ah(E.LibraryEmpty, { onTab: setView, onNew: goChat, ...hCtx });
   }
   if (view === 'runs') {
-    return _ah(E.RunsEmpty, { onTab: setView, onSettings: goSettings, onStart: goChat });
+    return _ah(E.RunsEmpty, { onTab: setView, onStart: goChat, ...hCtx });
   }
   if (view === 'overview') {
-    return _ah(E.OverviewEmpty, { onTab: setView, onSettings: goSettings, onNew: goChat });
+    return _ah(E.OverviewEmpty, { onTab: setView, onNew: goChat, ...hCtx });
   }
 
   // Chat with messages — interactive shell with account chip.

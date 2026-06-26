@@ -13,6 +13,9 @@ contextBridge.exposeInMainWorld('orynd', {
   onUpdate: (cb) => ipcRenderer.on('updater:available', (_e, info) => cb(info)),
   // window
   hide: () => ipcRenderer.invoke('window:hide'),
+  reload: () => ipcRenderer.invoke('window:reload'),
+  // open URL in system default browser (never inside Electron)
+  openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
   // feedback: collect recent logs (days: 1 today / 7 / 30)
   collectLogs: (days) => ipcRenderer.invoke('logs:collect', days),
 })
