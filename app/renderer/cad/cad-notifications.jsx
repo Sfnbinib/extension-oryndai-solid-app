@@ -116,14 +116,14 @@ function NotifRow({ n }) {
 }
 
 // Full notifications pane — grouped by day, with unread badge on header
-function NotificationsPane({ connection = 'connected', onBack }) {
+function NotificationsPane({ connection = 'connected', onBack, user, onBell, onSettings, onSignOut }) {
   const unreadCount = NOTIFS.filter(n => n.unread).length;
   const today = NOTIFS.filter(n => ['now','3m','12m','18m','1h','2h'].includes(n.time));
   const yesterday = NOTIFS.filter(n => n.time === 'Yesterday');
   const older = NOTIFS.filter(n => n.time === '2d ago');
   return _nh('div', { className: 'tp', style: { width: '100%', height: '100%' } },
     _nh('div', { className: 'tp-shell' },
-      _nh(NC.Header, { connection }),
+      _nh(NC.Header, { connection, user, onBell, onSettings, onSignOut }),
       _nh('div', { className: 'tp-backbar' },
         _nh('button', { className: 'tp-back', onClick: onBack || undefined }, _nh(NI.ChevronR, { size: 16, style: { transform: 'scaleX(-1)' } })),
         _nh('span', { className: 'bt' }, 'Notifications'),
@@ -144,10 +144,10 @@ function NotificationsPane({ connection = 'connected', onBack }) {
 }
 
 // Empty notifications pane (all caught up)
-function NotificationsEmpty({ connection = 'connected', onBack }) {
+function NotificationsEmpty({ connection = 'connected', onBack, user, onBell, onSettings, onSignOut }) {
   return _nh('div', { className: 'tp', style: { width: '100%', height: '100%' } },
     _nh('div', { className: 'tp-shell' },
-      _nh(NC.Header, { connection }),
+      _nh(NC.Header, { connection, user, onBell, onSettings, onSignOut }),
       _nh('div', { className: 'tp-backbar' },
         _nh('button', { className: 'tp-back', onClick: onBack || undefined }, _nh(NI.ChevronR, { size: 16, style: { transform: 'scaleX(-1)' } })),
         _nh('span', { className: 'bt' }, 'Notifications'),

@@ -67,6 +67,7 @@ const CADIcons = {
   Mail:     IcRound(['M3 6h18v12H3z', 'M3 7l9 6 9-6']),
   Card:     IcRound(['M3 6h18v12H3z', 'M3 10h18']),
   Sun:      IcRound(['M12 17a5 5 0 100-10 5 5 0 000 10z', 'M12 2v2M12 20v2M4 4l1.5 1.5M18.5 18.5L20 20M2 12h2M20 12h2M4 20l1.5-1.5M18.5 5.5L20 4']),
+  Moon:     IcRound(['M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z']),
   Power:    IcRound(['M12 4v8', 'M7.5 7a7 7 0 109 0']),
 };
 

@@ -5,6 +5,8 @@
  * watches for running CAD apps, installs add-ins on demand, and auto-updates.
  * Closing the window hides to tray; quit from the tray menu.
  */
+// Load .env before any other require so ORYND_BACKEND is set before bridge.js reads it.
+require('dotenv').config()
 const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell } = require('electron')
 const path = require('node:path')
 const { startBridge } = require('./bridge')

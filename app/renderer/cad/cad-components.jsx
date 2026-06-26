@@ -7,7 +7,7 @@ const h = React.createElement;
 
 // ---------- HEADER ----------
 // Header — when `user` prop provided, replaces settings gear with AccountChip + dropdown menu.
-function Header({ connection = 'connected', route = 'ORYND', onSettings, onBell, onSignOut, user }) {
+function Header({ connection = 'connected', route = 'ORYND', onSettings, onBell, onSignOut, user, hasUnread }) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const menuRef = React.useRef(null);
   React.useEffect(() => {
@@ -31,7 +31,7 @@ function Header({ connection = 'connected', route = 'ORYND', onSettings, onBell,
       chips[connection === 'offline' ? 'offline' : 'connected'],
       h('span', { className: 'tp-bell-wrap' },
         h('button', { className: 'tp-icon-btn', title: 'Notifications', onClick: onBell || undefined }, h(I.Bell, { size: 16 })),
-        h('span', { className: 'tp-bell-dot' }),
+        hasUnread && h('span', { className: 'tp-bell-dot' }),
       ),
       user
         ? h('button', { className: 'tp-acctchip' + (menuOpen ? ' open' : ''), title: 'Account', onClick: () => setMenuOpen(o => !o) },

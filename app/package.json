@@ -18,6 +18,7 @@
     "electron-builder": "^25.0.0"
   },
   "dependencies": {
+    "dotenv": "^17.4.2",
     "electron-updater": "^6.3.0"
   },
   "build": {
@@ -27,9 +28,18 @@
       "output": "../release"
     },
     "extraResources": [
-      { "from": "../fusion360_addin", "to": "addins/fusion360_addin" },
-      { "from": "../autocad_addin", "to": "addins/autocad_addin" },
-      { "from": "../solidworks_addin", "to": "addins/solidworks_addin" }
+      {
+        "from": "../fusion360_addin",
+        "to": "addins/fusion360_addin"
+      },
+      {
+        "from": "../autocad_addin",
+        "to": "addins/autocad_addin"
+      },
+      {
+        "from": "../solidworks_addin",
+        "to": "addins/solidworks_addin"
+      }
     ],
     "publish": [
       {
@@ -40,12 +50,26 @@
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
-      "target": [{ "target": "dmg", "arch": ["universal"] }],
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "universal"
+          ]
+        }
+      ],
       "icon": "assets/icon.png",
       "artifactName": "ORYND-Extension-mac.dmg"
     },
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "assets/icon.png",
       "artifactName": "ORYND-Extension-win.exe"
     },

@@ -23,41 +23,6 @@ function ChatBody({ blocks, sending, onSend }) {
   );
 }
 
-function LibraryBody() {
-  const D = window.DASH;
-  return _ah(React.Fragment, null,
-    _ah('div', { className: 'tp-toolbar' },
-      _ah('div', { className: 'tp-search' }, _ah(AI.Search, { size: 14 }),
-        _ah('input', { placeholder: 'Search parts & macros…', readOnly: true })),
-      _ah('button', { className: 'tp-filter' }, _ah(AI.Layers, { size: 12 }), 'All'),
-    ),
-    _ah('div', { className: 'tp-body', style: { paddingTop: 10 } },
-      _ah('div', { className: 'tp-lib' }, D.PARTS.map(D.libCard)),
-    ),
-    _ah('div', { className: 'tp-composer', style: { paddingTop: 11 } },
-      _ah('button', { className: 'tp-btn primary block' }, _ah(AI.Plus, { size: 15 }), 'New part from prompt')),
-  );
-}
-
-function RunsBody() {
-  const D = window.DASH;
-  return _ah('div', { className: 'tp-body', style: { paddingTop: 6 } },
-    _ah('div', { className: 'tp-runs' },
-      D.RUNS.map((g, gi) => _ah(React.Fragment, { key: gi },
-        _ah('div', { className: 'tp-day-label' }, g.day),
-        g.items.map((r, i) => _ah('div', { className: 'tp-run', key: i },
-          _ah('span', { className: 'tp-run-sdot', style: { background: D.STATUS_COLOR[r.status] } }),
-          _ah('div', { className: 'tp-run-main' },
-            _ah('div', { className: 'tp-run-title' }, r.title),
-            _ah('div', { className: 'tp-run-sub' }, r.sub + ' · ' + r.at),
-          ),
-          _ah('span', { className: 'tp-run-dur' }, r.dur),
-        )),
-      )),
-    ),
-  );
-}
-
 // Placeholder user — replace with real Supabase session when auth is wired.
 const PLACEHOLDER_USER = { initials: 'SF', email: 'savelij@orynd.ai', plan: 'Pro · trial' };
 
@@ -110,20 +75,22 @@ function OryndApp() {
   // Full-pane routes (no shell tabs).
   if (view === 'settings') {
     return _ah('div', { className: 'tp', style: { width: '100%', height: '100%' } },
-      _ah(window.SETTINGS2.SettingsV2, { onBack: goChat }));
+      _ah(window.SETTINGS2.SettingsV2, { onBack: goChat, onSignOut: signOut }));
   }
   if (view === 'notifications') {
     const hasNotifs = window.NOTIF.NOTIFS && window.NOTIF.NOTIFS.length > 0;
+    const notifCtx = { ...hCtx, onBack: goChat };
     return hasNotifs
-      ? _ah(window.NOTIF.NotificationsPane, { onBack: goChat })
-      : _ah(window.NOTIF.NotificationsEmpty, { onBack: goChat });
+      ? _ah(window.NOTIF.NotificationsPane, notifCtx)
+      : _ah(window.NOTIF.NotificationsEmpty, notifCtx);
   }
+
+  const hasUnread = window.NOTIF && window.NOTIF.NOTIFS && window.NOTIF.NOTIFS.some(n => n.unread);
+  // Shared header context passed to all shells (empty states + active chat).
+  const hCtx = { user: PLACEHOLDER_USER, onBell: goNotifications, onSettings: goSettings, onSignOut: signOut, hasUnread };
 
   // Full header props for active chat shell.
   const headerProps = { connection: 'connected', ...hCtx };
-
-  // Shared header context passed to all shells (empty states + active chat).
-  const hCtx = { user: PLACEHOLDER_USER, onBell: goNotifications, onSettings: goSettings, onSignOut: signOut };
 
   // Zero-state screens (no data yet) — each is a full pane with its own header/tabs.
   if (view === 'chat' && msgs.length === 0) {

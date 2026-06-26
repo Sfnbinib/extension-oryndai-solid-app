@@ -65,7 +65,7 @@ function Appearance({ theme = 'dark' }) {
 }
 
 // ---------- full Settings v2 screen ----------
-function SettingsV2({ light = false, apiState = 'empty', theme = 'dark', onBack }) {
+function SettingsV2({ light = false, apiState = 'empty', theme = 'dark', onBack, onSignOut }) {
   const C = window.CAD;
   return _s2('div', { className: 'tp' + (light ? ' light' : ''), style: { width: '100%', height: '100%' } },
     _s2('div', { className: 'tp-shell' },
@@ -93,7 +93,7 @@ function SettingsV2({ light = false, apiState = 'empty', theme = 'dark', onBack 
             ),
             _s2(S2I.Arrow, { size: 15, style: { color: 'var(--ink-3)' } }),
           ),
-          _s2('button', { className: 'tp-set-row', style: { width: '100%', background: 'none', border: 'none', cursor: 'pointer' } },
+          _s2('button', { className: 'tp-set-row', style: { width: '100%', background: 'none', border: 'none', cursor: 'pointer' }, onClick: onSignOut || undefined },
             _s2('span', { className: 'tp-set-ico', style: { color: 'var(--danger)' } }, _s2(S2I.Plug, { size: 16 })),
             _s2('div', { className: 'tp-set-main', style: { textAlign: 'left' } },
               _s2('div', { className: 'tp-set-title', style: { color: 'var(--danger)' } }, 'Sign out'),
