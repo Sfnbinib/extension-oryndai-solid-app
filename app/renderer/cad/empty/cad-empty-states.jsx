@@ -111,11 +111,11 @@ function OverviewEmpty({ onTab, onSettings, onNew, user, onBell, onSignOut } = {
           _eh('h2', null, 'Welcome to ', _eh('span', { className: 'em' }, 'ORYND')),
           _eh('p', null, 'No parts yet — let\'s build your first one.'),
         ),
-        // connect CTA (offline)
+        // connect CTA (offline) → opens Settings where CAD connections live
         _eh('div', { className: 'es-connrow' },
           _eh('span', { className: 'ic' }, _eh(EI.Plug, { size: 16 })),
           _eh('span', null, _eh('b', null, 'SolidWorks'), ' not connected'),
-          _eh('span', { className: 'link' }, 'Connect →'),
+          _eh('button', { className: 'link', onClick: onSettings || undefined, style: { background: 'none', border: 'none', cursor: 'pointer' } }, 'Connect →'),
         ),
         _eh('div', { className: 'tp-vd-cta', onClick: onNew, style: onNew ? { cursor: 'pointer' } : undefined },
           _eh('span', { className: 'ci' }, _eh(EI.Spark, { size: 18 })),

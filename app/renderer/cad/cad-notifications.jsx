@@ -102,14 +102,35 @@ const NOTIFS = [
   },
 ];
 
-function NotifRow({ n }) {
+// Map a notification action label to a behavior. Billing/upgrade CTAs open the
+// site in the system browser; everything else is a safe no-op until the matching
+// backend/CAD capability is live (so nothing throws on click).
+function _notifAction(label, ctx) {
+  const l = (label || '').toLowerCase();
+  if (l.includes('upgrade') || l.includes('trial') || l.includes('pro')) {
+    if (window.orynd && window.orynd.openExternal) window.orynd.openExternal('https://oryndai.com/billing');
+    return;
+  }
+  if (l.includes('sign in')) { if (ctx && ctx.onSignIn) ctx.onSignIn(); return; }
+  if (l.includes('review') || l.includes('continue') || l.includes('details') || l.includes('errors')) {
+    if (ctx && ctx.onBack) ctx.onBack();
+    return;
+  }
+  // Open in CAD / Show file / Reconnect / Open folder — need a live CAD bridge; no-op for now.
+}
+
+function NotifRow({ n, ctx }) {
   return _nh('div', { className: 'tp-notif' + (n.unread ? ' unread' : '') },
     _nh('span', { className: 'nico ' + n.kind }, _nh(n.icon, { size: 17 })),
     _nh('div', { className: 'nmain' },
       _nh('div', { className: 'ntitle' }, n.title),
       _nh('div', { className: 'nbody' }, n.body),
       n.actions && _nh('div', { className: 'nact' },
-        n.actions.map((a, i) => _nh('button', { className: 'tp-btn sm' + (a.primary ? ' primary' : ''), key: i }, a.label))),
+        n.actions.map((a, i) => _nh('button', {
+          className: 'tp-btn sm' + (a.primary ? ' primary' : ''),
+          key: i,
+          onClick: () => _notifAction(a.label, ctx),
+        }, a.label))),
     ),
     _nh('span', { className: 'ntime' }, n.time),
   );
@@ -121,6 +142,7 @@ function NotificationsPane({ connection = 'connected', onBack, user, onBell, onS
   const today = NOTIFS.filter(n => ['now','3m','12m','18m','1h','2h'].includes(n.time));
   const yesterday = NOTIFS.filter(n => n.time === 'Yesterday');
   const older = NOTIFS.filter(n => n.time === '2d ago');
+  const rowCtx = { onBack, onSignIn: onSignOut };
   return _nh('div', { className: 'tp', style: { width: '100%', height: '100%' } },
     _nh('div', { className: 'tp-shell' },
       _nh(NC.Header, { connection, user, onBell, onSettings, onSignOut }),
@@ -132,11 +154,11 @@ function NotificationsPane({ connection = 'connected', onBack, user, onBell, onS
       _nh('div', { className: 'tp-body', style: { padding: 0, gap: 0 } },
         _nh('div', { className: 'tp-notif-list' },
           _nh('div', { className: 'tp-notif-dayhead' }, 'Today'),
-          today.map(n => _nh(NotifRow, { key: n.id, n })),
+          today.map(n => _nh(NotifRow, { key: n.id, n, ctx: rowCtx })),
           yesterday.length > 0 && _nh('div', { className: 'tp-notif-dayhead' }, 'Yesterday'),
-          yesterday.map(n => _nh(NotifRow, { key: n.id, n })),
+          yesterday.map(n => _nh(NotifRow, { key: n.id, n, ctx: rowCtx })),
           older.length > 0 && _nh('div', { className: 'tp-notif-dayhead' }, 'Earlier'),
-          older.map(n => _nh(NotifRow, { key: n.id, n })),
+          older.map(n => _nh(NotifRow, { key: n.id, n, ctx: rowCtx })),
         ),
       ),
     ),
