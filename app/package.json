@@ -52,7 +52,8 @@
       {
         "provider": "github",
         "owner": "Sfnbinib",
-        "repo": "extension-oryndai-solid-app"
+        "repo": "extension-oryndai-solid-app",
+        "releaseType": "release"
       }
     ],
     "mac": {
