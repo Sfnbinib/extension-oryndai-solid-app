@@ -18,44 +18,52 @@ function OrbitIllo() {
 }
 
 // ---------- CHAT — first launch, zero history ----------
-function ChatEmpty({ onTab, onSettings, onSend, onPick, user, onBell, onSignOut } = {}) {
+function ChatEmpty({ onTab, onSettings, onSend, onPick, user, onBell, onSignOut, connection, light,
+  connMode, onConnMode, keyOk, mcpOk, routes, mcpStatus, credits,
+  onboardingDone, onboardingProgress, onOnboardingSkip, onOnboardingDone } = {}) {
   const suggestions = [
     { icon: EI.Circle,   text: 'Create a ventilated brake disc, Ø320' },
     { icon: EI.Settings, text: 'Make a 24-tooth spur gear, module 2' },
     { icon: EI.Cube,     text: 'M3 mounting bracket, 80×60×24 mm' },
     { icon: EI.Layers,   text: 'Hex standoff M4, Ø8 · 20 mm tall' },
   ];
-  return _eh('div', { className: 'tp', style: { width: '100%', height: '100%' } },
+  return _eh('div', { className: 'tp' + (light ? ' light' : ''), style: { width: '100%', height: '100%' } },
     _eh('div', { className: 'tp-shell' },
-      _eh(EC.Header, { connection: 'connected', route: 'ORYND', onSettings, onBell, onSignOut, user }),
+      _eh(EC.Header, { connection: connection || 'connected', route: 'ORYND', onSettings, onBell, onSignOut, user, credits }),
       _eh(ED.PaneTabs, { active: 'chat', onTab }),
-      _eh('div', { className: 'tp-body', style: { alignItems: 'center', justifyContent: 'center', paddingTop: 32 } },
-        _eh(OrbitIllo),
-        _eh('div', { style: { height: 20 } }),
-        _eh('h2', { className: 'es-h' }, 'Describe the part you ', _eh('span', { className: 'em' }, 'want')),
-        _eh('p', { className: 'es-p', style: { marginTop: 8, marginBottom: 20 } },
-          'Type a prompt, drop a sketch, or attach a photo. ORYND plans the CAD operations and waits for your approval before touching the model.'),
-        _eh('div', { className: 'es-chips' },
-          suggestions.map((s, i) => _eh('button', { className: 'es-chip', key: i, onClick: onPick ? () => onPick(s.text) : undefined },
-            _eh('span', { className: 'ic' }, _eh(s.icon, { size: 15 })),
-            s.text,
-            _eh('span', { className: 'arr' }, _eh(EI.Arrow, { size: 14 })),
-          ))),
-        _eh('div', { style: { height: 14 } }),
-        _eh('div', { className: 'es-hint' },
-          _eh('span', { className: 'ic' }, _eh(EI.Image, { size: 14 })),
-          'Or attach a sketch, photo, or STEP file'),
-      ),
-      _eh(EC.Composer, { mode: 'Create', route: 'ORYND', onSend }),
+      (window.ONBOARD && !onboardingDone)
+        ? _eh('div', { className: 'tp-body', style: { paddingTop: 20 } },
+            _eh(window.ONBOARD.F1OnboardingPanel, {
+              progress: onboardingProgress, onSkip: onOnboardingSkip, onDone: onOnboardingDone,
+            }))
+        : _eh('div', { className: 'tp-body', style: { alignItems: 'center', justifyContent: 'center', paddingTop: 32 } },
+            _eh(OrbitIllo),
+            _eh('div', { style: { height: 20 } }),
+            _eh('h2', { className: 'es-h' }, 'Describe the part you ', _eh('span', { className: 'em' }, 'want')),
+            _eh('p', { className: 'es-p', style: { marginTop: 8, marginBottom: 20 } },
+              'Type a prompt, drop a sketch, or attach a photo. ORYND plans the CAD operations and waits for your approval before touching the model.'),
+            _eh('div', { className: 'es-chips' },
+              suggestions.map((s, i) => _eh('button', { className: 'es-chip', key: i, onClick: onPick ? () => onPick(s.text) : undefined },
+                _eh('span', { className: 'ic' }, _eh(s.icon, { size: 15 })),
+                s.text,
+                _eh('span', { className: 'arr' }, _eh(EI.Arrow, { size: 14 })),
+              ))),
+            _eh('div', { style: { height: 14 } }),
+            _eh('div', { className: 'es-hint' },
+              _eh('span', { className: 'ic' }, _eh(EI.Image, { size: 14 })),
+              'Or attach a sketch, photo, or STEP file'),
+          ),
+      connMode === 'mcp' && _eh('div', { style: { padding: '0 14px 8px' } }, _eh(EC.McpActivityPill, { status: mcpStatus })),
+      _eh(EC.Composer, { mode: 'Create', route: 'ORYND', onSend, connMode, onConnMode, keyOk, mcpOk, routes }),
     ),
   );
 }
 
 // ---------- LIBRARY — no automations yet ----------
-function LibraryEmpty({ onTab, onSettings, onNew, user, onBell, onSignOut } = {}) {
-  return _eh('div', { className: 'tp', style: { width: '100%', height: '100%' } },
+function LibraryEmpty({ onTab, onSettings, onNew, user, onBell, onSignOut, connection, light, credits } = {}) {
+  return _eh('div', { className: 'tp' + (light ? ' light' : ''), style: { width: '100%', height: '100%' } },
     _eh('div', { className: 'tp-shell' },
-      _eh(EC.Header, { connection: 'connected', route: 'ORYND', onSettings, onBell, onSignOut, user }),
+      _eh(EC.Header, { connection: connection || 'connected', route: 'ORYND', onSettings, onBell, onSignOut, user, credits }),
       _eh(ED.PaneTabs, { active: 'library', onTab }),
       _eh('div', { className: 'tp-toolbar' },
         _eh('div', { className: 'tp-search', style: { opacity: .4 } },
@@ -82,10 +90,10 @@ function LibraryEmpty({ onTab, onSettings, onNew, user, onBell, onSignOut } = {}
 }
 
 // ---------- RUNS — no history yet ----------
-function RunsEmpty({ onTab, onSettings, onStart, user, onBell, onSignOut } = {}) {
-  return _eh('div', { className: 'tp', style: { width: '100%', height: '100%' } },
+function RunsEmpty({ onTab, onSettings, onStart, user, onBell, onSignOut, connection, light, credits } = {}) {
+  return _eh('div', { className: 'tp' + (light ? ' light' : ''), style: { width: '100%', height: '100%' } },
     _eh('div', { className: 'tp-shell' },
-      _eh(EC.Header, { connection: 'connected', route: 'ORYND', onSettings, onBell, onSignOut, user }),
+      _eh(EC.Header, { connection: connection || 'connected', route: 'ORYND', onSettings, onBell, onSignOut, user, credits }),
       _eh(ED.PaneTabs, { active: 'runs', onTab }),
       _eh('div', { className: 'tp-body', style: { alignItems: 'center', justifyContent: 'center', paddingTop: 32 } },
         _eh('div', { className: 'es-grid', style: { marginBottom: 24 } },
@@ -101,20 +109,27 @@ function RunsEmpty({ onTab, onSettings, onStart, user, onBell, onSignOut } = {})
 }
 
 // ---------- OVERVIEW — brand-new user, zero data ----------
-function OverviewEmpty({ onTab, onSettings, onNew, user, onBell, onSignOut } = {}) {
-  return _eh('div', { className: 'tp', style: { width: '100%', height: '100%' } },
+function OverviewEmpty({ onTab, onSettings, onNew, user, onBell, onSignOut, connection, light, cadDetected = [], credits } = {}) {
+  // Real detection (window.orynd.detectCad, polled in OryndApp) — not a hardcoded
+  // "SolidWorks not connected" regardless of what's actually running.
+  const CAD_APPS = (window.SETTINGS2 && window.SETTINGS2.CAD_APPS) || [];
+  const connectedNames = CAD_APPS.filter((a) => cadDetected.indexOf(a.id) !== -1).map((a) => a.name);
+  const connLabel = connectedNames.length
+    ? _eh(React.Fragment, null, _eh('b', null, connectedNames.join(', ')), ' connected')
+    : _eh(React.Fragment, null, _eh('b', null, 'No CAD app'), ' connected');
+  return _eh('div', { className: 'tp' + (light ? ' light' : ''), style: { width: '100%', height: '100%' } },
     _eh('div', { className: 'tp-shell' },
-      _eh(EC.Header, { connection: 'offline', route: 'ORYND', onSettings, onBell, onSignOut, user }),
+      _eh(EC.Header, { connection: connection || 'connected', route: 'ORYND', onSettings, onBell, onSignOut, user, credits }),
       _eh(ED.PaneTabs, { active: 'overview', onTab }),
       _eh('div', { className: 'tp-vd' },
         _eh('div', { className: 'tp-vd-hero' },
           _eh('h2', null, 'Welcome to ', _eh('span', { className: 'em' }, 'ORYND')),
           _eh('p', null, 'No parts yet — let\'s build your first one.'),
         ),
-        // connect CTA (offline) → opens Settings where CAD connections live
+        // connect CTA — real detection, not a hardcoded vendor name
         _eh('div', { className: 'es-connrow' },
           _eh('span', { className: 'ic' }, _eh(EI.Plug, { size: 16 })),
-          _eh('span', null, _eh('b', null, 'SolidWorks'), ' not connected'),
+          _eh('span', null, connLabel),
           _eh('button', { className: 'link', onClick: onSettings || undefined, style: { background: 'none', border: 'none', cursor: 'pointer' } }, 'Connect →'),
         ),
         _eh('div', { className: 'tp-vd-cta', onClick: onNew, style: onNew ? { cursor: 'pointer' } : undefined },
@@ -145,10 +160,10 @@ function OverviewEmpty({ onTab, onSettings, onNew, user, onBell, onSignOut } = {
 }
 
 // ---------- NOTIFICATIONS — all caught up ----------
-function NotificationsEmpty({ onBack, onSettings } = {}) {
-  return _eh('div', { className: 'tp', style: { width: '100%', height: '100%' } },
+function NotificationsEmpty({ onBack, onSettings, onBell, onSignOut, user, connection, light } = {}) {
+  return _eh('div', { className: 'tp' + (light ? ' light' : ''), style: { width: '100%', height: '100%' } },
     _eh('div', { className: 'tp-shell' },
-      _eh(EC.Header, { connection: 'connected', route: 'ORYND', onSettings }),
+      _eh(EC.Header, { connection: connection || 'connected', route: 'ORYND', onSettings, onBell, onSignOut, user }),
       _eh('div', { className: 'tp-backbar' },
         _eh('button', { className: 'tp-back', onClick: onBack }, _eh(EI.ChevronR, { size: 16, style: { transform: 'scaleX(-1)' } })),
         _eh('span', { className: 'bt' }, 'Notifications'),

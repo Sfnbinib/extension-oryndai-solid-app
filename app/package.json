@@ -1,12 +1,13 @@
 {
   "name": "orynd-extension",
-  "version": "0.1.0",
+  "version": "0.9.0",
   "description": "ORYND CAD Extension — bridge your CAD app to ORYND AI",
   "author": "ORYND",
   "license": "UNLICENSED",
   "private": true,
   "main": "main.js",
   "scripts": {
+    "check:bridge": "node test/bridge_check.js",
     "start": "electron .",
     "dist": "electron-builder",
     "dist:mac": "electron-builder --mac",
@@ -24,6 +25,12 @@
   "build": {
     "appId": "com.orynd.extension",
     "productName": "ORYND Extension",
+    "files": [
+      "**/*",
+      "!.env",
+      "!.env.*",
+      "!test"
+    ],
     "directories": {
       "output": "../release"
     },

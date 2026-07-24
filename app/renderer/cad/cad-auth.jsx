@@ -16,29 +16,118 @@ function GoogleGlyph({ size = 18 }) {
 }
 
 // ---------- SIGN-IN / LOGGED-OUT GATE ----------
-function SignInScreen({ subtext, light, onSignIn } = {}) {
+// In-app email/password via Supabase (window.SB). Google goes through the system
+// browser (providers forbid webviews) and returns via the orynd:// deep-link.
+const _authInput = {
+  width: '100%', height: 42, padding: '0 12px', marginBottom: 10,
+  background: 'rgba(255,255,255,.04)', border: '1px solid var(--glass-edge, rgba(255,255,255,.12))',
+  borderRadius: 10, color: 'var(--ink, #f3f3f0)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box',
+};
+
+function SignInScreen({ subtext, light } = {}) {
+  const [mode, setMode] = React.useState('signin'); // signin | signup
+  const [email, setEmail] = React.useState('');
+  const [pw, setPw] = React.useState('');
+  const [err, setErr] = React.useState('');
+  const [notice, setNotice] = React.useState('');
+  const [busy, setBusy] = React.useState(false);
+
+  const submit = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    setErr(''); setNotice('');
+    if (!email || !pw) { setErr('Enter your email and password.'); return; }
+    if (!window.SB) { setErr('Auth unavailable \u2014 restart the app.'); return; }
+    setBusy(true);
+    try {
+      if (mode === 'signin') {
+        const { error } = await window.SB.auth.signInWithPassword({ email: email.trim(), password: pw });
+        if (error) setErr(error.message);
+      } else {
+        const { data, error } = await window.SB.auth.signUp({ email: email.trim(), password: pw });
+        if (error) setErr(error.message);
+        else if (data && !data.session) setNotice('Check your email to confirm your account, then sign in.');
+      }
+    } catch (ex) {
+      setErr((ex && ex.message) || 'Sign-in failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const google = async () => {
+    setErr(''); setNotice('');
+    if (!window.SB || !window.orynd || !window.orynd.openExternal) { setErr('Browser sign-in unavailable.'); return; }
+    setBusy(true);
+    try {
+      // Point at the actual file via its clean URL (/auth-callback works like /register).
+      // The /auth/callback REWRITE is broken in prod, so we bypass it entirely.
+      const redirectTo = 'https://oryndai.com/auth-callback';
+      const { data, error } = await window.SB.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo, skipBrowserRedirect: true },
+      });
+      if (error) { setErr(error.message); return; }
+      if (data && data.url) window.orynd.openExternal(data.url);
+      else setErr('Could not start Google sign-in.');
+    } catch (ex) {
+      setErr((ex && ex.message) || 'Google sign-in failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const isSignup = mode === 'signup';
   return _uh('div', { className: 'tp' + (light ? ' light' : ''), style: { width: '100%', height: '100%' } },
     _uh('div', { className: 'tp-shell' },
       _uh('div', { className: 'tp-onb' },
         _uh('div', { className: 'tp-onb-grid' }),
         _uh('div', { className: 'tp-onb-glow' }),
-        _uh('div', { className: 'tp-onb-inner', style: { justifyContent: 'center', alignItems: 'center', textAlign: 'center' } },
+        _uh('div', { className: 'tp-onb-inner', style: { textAlign: 'center' } },
           _uh('div', { className: 'tp-auth-col' },
             _uh('div', { className: 'tp-onb-logo' },
               _uh('img', { src: 'cad/brand/orynd-orbit-white.png', alt: 'ORYND', style: { width: 30, height: 'auto' } })),
-            _uh('h2', { className: 'tp-auth-h' }, 'Sign in to ', _uh('span', { className: 'em' }, 'ORYND')),
+            _uh('h2', { className: 'tp-auth-h' }, isSignup ? 'Create your ' : 'Sign in to ', _uh('span', { className: 'em' }, 'ORYND')),
             _uh('p', { className: 'tp-auth-sub' },
               subtext || 'Your CAD copilot for SolidWorks. Sign in to sync parts, recipes, and your subscription.'),
-            _uh('div', { className: 'tp-auth-btns' },
-              _uh('button', { className: 'tp-oauth-btn', onClick: onSignIn || undefined },
-                _uh(GoogleGlyph, { size: 18 }), 'Continue with Google'),
-              _uh('button', { className: 'tp-oauth-btn', onClick: onSignIn || undefined },
-                _uh(UI.Mail || UI.File, { size: 17 }), 'Continue with email'),
+
+            _uh('form', { onSubmit: submit, style: { width: '100%', marginTop: 6 } },
+              _uh('input', {
+                type: 'email', placeholder: 'you@company.com', value: email, autoFocus: true,
+                autoComplete: 'email', disabled: busy, style: _authInput,
+                onChange: (ev) => setEmail(ev.target.value),
+              }),
+              _uh('input', {
+                type: 'password', placeholder: 'Password', value: pw,
+                autoComplete: isSignup ? 'new-password' : 'current-password', disabled: busy, style: _authInput,
+                onChange: (ev) => setPw(ev.target.value),
+              }),
+              err && _uh('div', { style: { color: '#ff8a6b', fontSize: 12.5, textAlign: 'left', marginBottom: 8 } }, err),
+              notice && _uh('div', { style: { color: '#7fd99a', fontSize: 12.5, textAlign: 'left', marginBottom: 8 } }, notice),
+              _uh('button', {
+                type: 'submit', className: 'tp-btn primary', disabled: busy,
+                style: { width: '100%', height: 44, justifyContent: 'center' },
+              }, busy ? 'Please wait\u2026' : (isSignup ? 'Create account' : 'Sign in')),
             ),
+
+            _uh('div', { style: { display: 'flex', alignItems: 'center', gap: 10, width: '100%', margin: '14px 0', opacity: .5 } },
+              _uh('div', { style: { flex: 1, height: 1, background: 'var(--glass-edge, rgba(255,255,255,.12))' } }),
+              _uh('span', { style: { fontSize: 11 } }, 'or'),
+              _uh('div', { style: { flex: 1, height: 1, background: 'var(--glass-edge, rgba(255,255,255,.12))' } }),
+            ),
+
+            _uh('div', { className: 'tp-auth-btns' },
+              _uh('button', { className: 'tp-oauth-btn', onClick: google, disabled: busy },
+                _uh(GoogleGlyph, { size: 18 }), 'Continue with Google'),
+            ),
+
+            _uh('button', {
+              type: 'button', className: 'tp-auth-why',
+              onClick: () => { setErr(''); setNotice(''); setMode(isSignup ? 'signin' : 'signup'); },
+            }, isSignup ? 'Have an account? Sign in' : 'Create an account'),
+
             _uh('div', { className: 'tp-auth-foot' },
               _uh(UI.Info, { size: 13 }),
-              'You\u2019ll finish signing in in your browser.'),
-            _uh('button', { className: 'tp-auth-why' }, 'Why sign in?'),
+              'Google finishes in your browser, then returns here.'),
           ),
         ),
       ),

@@ -9,6 +9,7 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 const { URL } = require('node:url')
+const projects = require('./projects_store')
 
 // Two addresses since the 18.07 split: COMPUTE (chat/search/mesh/cad/mcp) moved to the
 // dop-server, MONEY (/api/billing/me) stayed on the site backend. api.oryndai.com now
@@ -17,6 +18,14 @@ const { URL } = require('node:url')
 // TODO(prod): swap the raw IP for https://dop.oryndai.com once DNS + nginx:443 are up.
 const DEFAULT_BACKEND = process.env.ORYND_BACKEND || 'http://3.86.214.175:8765'
 const BILLING_BACKEND = process.env.ORYND_BILLING_BACKEND || 'https://api.oryndai.com'
+
+// PUBLIC endpoint an EXTERNAL MCP client (claude.ai / Claude Desktop) connects to.
+// claude.ai refuses http remote connectors, so this MUST be https — it goes through the
+// Cloudflare tunnel (mcp.oryndai.com) → Virginia. Deliberately SEPARATE from DEFAULT_BACKEND:
+// the app's own calls stay on the direct backend (no need for the public host + its CDN /
+// bot-check on Node fetches). Override for the local-bridge topology via ORYND_MCP_PUBLIC_URL
+// (e.g. http://127.0.0.1:8765/mcp).
+const MCP_PUBLIC_URL = process.env.ORYND_MCP_PUBLIC_URL || 'https://mcp.oryndai.com/mcp'
 
 // Which build this is — attached to feedback so a bug report says what it ran on.
 const APP_VERSION = (() => {
@@ -29,11 +38,42 @@ const APP_VERSION = (() => {
 // host CAD's own embedded webview) hitting the same 127.0.0.1:8765 origin —
 // same origin, but separate localStorage per engine, so signing in on one
 // does NOT automatically show as signed-in on the other. Relaying the token
-// pair through here (in-memory only, never written to disk, never logged —
-// same session-scoped convention as the /api/key relay below) lets any
-// surface adopt the session set by any other surface. founder requirement
-// 2026-07-14: "одна сессия... любой запрос... должен дойти".
+// pair through here lets any surface adopt the session set by any other surface.
+// founder requirement 2026-07-14: "одна сессия... любой запрос... должен дойти".
+//
+// PERSISTED to userData (founder MVP requirement 2026-07-24: "не терять логин при
+// перезапуске приложения"). Previously this lived in memory only, so restarting
+// the app — or the bridge — dropped every surface back to the sign-in gate. It is
+// the user's OWN session on the user's OWN machine — the same trust level as the
+// Supabase session the renderer already keeps in localStorage — written owner-only
+// (0600) and never logged. Cleared on a real sign-out. The LLM key (_llm) below is
+// deliberately NOT persisted here: a raw provider key on disk needs the OS keychain,
+// which is tracked separately.
 let _session = null // { access_token, refresh_token, user } | null
+
+// userData dir for session persistence — set by startBridge() from Electron's app
+// path. Null when the bridge runs outside Electron (tests) → persistence no-ops.
+let _userDataDir = null
+function _sessionFile() {
+  return _userDataDir ? path.join(_userDataDir, 'session.json') : null
+}
+// Best-effort: a persistence hiccup must never break the sign-in that just happened.
+function persistSession(sess) {
+  const f = _sessionFile()
+  if (!f) return
+  try {
+    if (sess && sess.access_token) fs.writeFileSync(f, JSON.stringify(sess), { mode: 0o600 })
+    else fs.rmSync(f, { force: true })
+  } catch { /* ignore — auth still works this session, just won't survive restart */ }
+}
+function loadPersistedSession() {
+  const f = _sessionFile()
+  if (!f) return null
+  try {
+    const s = JSON.parse(fs.readFileSync(f, 'utf8'))
+    return s && s.access_token ? s : null
+  } catch { return null }
+}
 
 // The user's own LLM key — kept HERE, in this process, on the user's own machine.
 // The backend is one process shared by every install: we used to hand it the key
@@ -42,6 +82,32 @@ let _session = null // { access_token, refresh_token, user } | null
 // with each /chat as X-LLM-* headers, so it never rests anywhere but here.
 // In-memory only — never disk, never logged, never handed back to the renderer.
 let _llm = null // { key, provider, model, verified } | null
+
+// The BYO provider key is sensitive → when persisted it is ENCRYPTED at rest via the
+// OS keychain (Electron safeStorage, injected by startBridge), never plaintext.
+// Founder decision 2026-07-24: persist so the key survives an app restart (no re-paste),
+// same as the session. If no keychain is available (tests, or Linux without a backend)
+// we simply SKIP persistence rather than downgrade to a plaintext key on disk.
+let _safeStorage = null
+function _keyFile() {
+  return _userDataDir ? path.join(_userDataDir, 'llm-key.enc') : null
+}
+function persistLlm(llm) {
+  const f = _keyFile()
+  if (!f || !_safeStorage || !_safeStorage.isEncryptionAvailable()) return
+  try {
+    if (llm && llm.key) fs.writeFileSync(f, _safeStorage.encryptString(JSON.stringify(llm)), { mode: 0o600 })
+    else fs.rmSync(f, { force: true })
+  } catch { /* ignore — key still works this session, just won't survive restart */ }
+}
+function loadPersistedLlm() {
+  const f = _keyFile()
+  if (!f || !_safeStorage || !_safeStorage.isEncryptionAvailable()) return null
+  try {
+    const llm = JSON.parse(_safeStorage.decryptString(fs.readFileSync(f)))
+    return llm && llm.key ? llm : null
+  } catch { return null }
+}
 
 // anthropic|openai|gemini|groq → the composer route that key unlocks (/llm/status shape).
 const _ROUTE_OF_PROVIDER = { anthropic: 'Claude', openai: 'OpenAI', gemini: 'Gemini', groq: 'Groq' }
@@ -207,31 +273,156 @@ function extractModelUrls(data) {
     if (!t) continue
     try {
       const ev = JSON.parse(t)
-      if (ev.type === 'model_ready' && ev.stl_url) {
-        return { stl: ev.stl_url, step: ev.step_url || null, obj: ev.obj_url || null }
+      // A build ships all three (stl/step/obj); a catalog part (find_standard_part)
+      // ships STEP only. Trigger on ANY artifact url so a found bearing/screw also
+      // gets a downloadable file card, not just plain text.
+      if (ev.type === 'model_ready' && (ev.stl_url || ev.step_url || ev.obj_url)) {
+        return { stl: ev.stl_url || null, step: ev.step_url || null, obj: ev.obj_url || null }
       }
     } catch { /* skip non-JSON line */ }
   }
   return null
 }
 
-// Headless save: download built artifacts into the local project folder.
+// Project folder layout, one per chat:
+//   <project>/input/    what the user attached (photos, blueprints)
+//   <project>/output/   what came back from the server
+//   <project>/chat.json + .orynd/  written by the main process
+const projectRoot = (sessionId) =>
+  path.join(PROJECT_DIR, String(sessionId || 'default').replace(/[^a-zA-Z0-9._-]/g, '_'))
+
+/**
+ * File name from what the user actually asked for. `part.step` twelve times over
+ * is unusable in Finder — the whole point is dragging the right file into Fusion
+ * without opening each one to find out which is which.
+ */
+function slugFromText(text, fallback = 'part') {
+  const s = String(text || '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 40)
+    .replace(/-+$/, '')
+  return s || fallback
+}
+
+// Never overwrite an earlier build: the second gear becomes gear-2.step, not a
+// silent replacement of the first one.
+function freeName(dir, base, ext) {
+  let name = `${base}.${ext}`
+  let n = 2
+  while (fs.existsSync(path.join(dir, name))) {
+    name = `${base}-${n}.${ext}`
+    n += 1
+  }
+  return path.join(dir, name)
+}
+
+// Headless save: download built artifacts into the project's output folder.
 // Fail-soft — a download problem never breaks the chat reply.
-async function saveModelFiles(sessionId, urls) {
+async function saveModelFiles(sessionId, urls, promptText) {
   if (!urls) return null
-  const safe = String(sessionId || 'default').replace(/[^a-zA-Z0-9._-]/g, '_')
-  const dir = path.join(PROJECT_DIR, safe)
+  const dir = path.join(projectRoot(sessionId), 'output')
   try {
     fs.mkdirSync(dir, { recursive: true })
   } catch {
     return null
   }
+  const base = slugFromText(promptText)
   const saved = {}
   for (const ext of ['stl', 'step', 'obj']) {
     if (!urls[ext]) continue
-    saved[ext] = await download(urls[ext], path.join(dir, `part.${ext}`))
+    saved[ext] = await download(urls[ext], freeName(dir, base, ext))
   }
   return saved.stl || saved.step || saved.obj ? { dir, ...saved } : null
+}
+
+// ---------- MCP artifact poll ----------
+// Founder 24.07: a file built by an external Claude over MCP should land in the
+// app exactly like an in-app build does — a new local chat with a clickable
+// path, not just a URL that only lives on the server. Real push (SSE) would be
+// the "proper" version of this and is real, separate scope; polling is enough —
+// every few seconds, ask the server "anything new since <t>", download it with
+// the SAME download() the /chat path already uses, and save it as a chat via
+// the SAME projects_store the renderer's Overview tab already reads from. No
+// new infrastructure, two existing pieces wired to a new trigger.
+//
+// Starts counting from the moment THIS bridge process launched — the server
+// keeps a 200-entry history, but backfilling all of it on every restart would
+// dump old test builds into Overview every time the app reopens. Only NEW.
+let _mcpArtifactsSince = Date.now() / 1000
+
+async function pollMcpArtifacts() {
+  if (!_session || !_session.access_token) return
+  const [code, data] = await forward(
+    'GET', `/mcp/recent-artifacts?since=${_mcpArtifactsSince}`, null,
+    { Authorization: 'Bearer ' + _session.access_token },
+  )
+  if (code !== 200 || !data || !Array.isArray(data.items)) return
+  if (typeof data.server_ts === 'number') _mcpArtifactsSince = data.server_ts
+  for (const item of data.items) {
+    try {
+      await saveMcpArtifactLocally(item)
+    } catch { /* one bad item never blocks the rest of the batch */ }
+  }
+}
+
+async function saveMcpArtifactLocally(item) {
+  const art = item.artifact || {}
+  const urls = { stl: art.stl_url || null, step: art.step_url || null, obj: art.obj_url || null }
+  if (!urls.stl && !urls.step && !urls.obj) return
+  // Own id, separate from any in-app chat — this build happened over MCP, on
+  // its own server-side session, not inside a conversation this app was part of.
+  const id = 'mcp-' + Math.round(item.ts) + '-' + Math.random().toString(16).slice(2, 8)
+  const dir = path.join(projectRoot(id), 'output')
+  try {
+    fs.mkdirSync(dir, { recursive: true })
+  } catch {
+    return
+  }
+  const base = slugFromText(item.title, item.tool || 'part')
+  const saved = {}
+  for (const ext of ['stl', 'step', 'obj']) {
+    if (!urls[ext]) continue
+    saved[ext] = await download(urls[ext], freeName(dir, base, ext))
+  }
+  if (!saved.stl && !saved.step && !saved.obj) return
+  const label = String(item.title || item.tool || 'MCP build')
+  // Same 'run' block shape a normal in-app build ends its turn with — filesDir/
+  // stepPath/stlPath/objPath are the raw fields renderBlock('run') now uses to
+  // reconstruct working Open/Fusion buttons on load (the reload-button fix
+  // above), so this renders with a working "Open files" the first time it's
+  // opened, no special-cased component just for MCP builds.
+  projects.save(id, {
+    title: label + ' · via MCP',
+    messages: [
+      { t: 'user', text: label },
+      {
+        t: 'run', steps: [], running: false, elapsedMs: 0, error: null,
+        filesDir: dir, stepPath: saved.step || null, stlPath: saved.stl || null, objPath: saved.obj || null,
+      },
+    ],
+  })
+}
+
+/**
+ * Keep the attached photo/blueprint next to the work it produced. Without this the
+ * image exists only as base64 inside one HTTP request — the user could not later
+ * see which drawing a part came from.
+ */
+function saveInputFile(sessionId, b64, name) {
+  if (!b64) return null
+  const dir = path.join(projectRoot(sessionId), 'input')
+  try {
+    fs.mkdirSync(dir, { recursive: true })
+    const ext = (path.extname(name || '') || '.png').replace(/[^.a-zA-Z0-9]/g, '')
+    const base = slugFromText(path.basename(name || '', ext), 'attachment')
+    const file = freeName(dir, base, ext.replace(/^\./, ''))
+    fs.writeFileSync(file, Buffer.from(b64, 'base64'))
+    return file
+  } catch {
+    return null
+  }
 }
 
 // What to SAY when /chat fails. The user reads this in the chat, so it names what
@@ -314,7 +505,7 @@ function streamChat(bodyObj, extraHeaders, sessionId, res) {
         // Headless: mirror built STL/STEP/OBJ to the local project folder, then
         // tell the UI where they are as a final NDJSON line.
         try {
-          const files = await saveModelFiles(sessionId, extractModelUrls({ raw }))
+          const files = await saveModelFiles(sessionId, extractModelUrls({ raw }), bodyObj && bodyObj.message)
           if (files && files.dir) res.write(JSON.stringify({ type: 'files', files }) + '\n')
         } catch { /* save is best-effort */ }
         res.end()
@@ -482,7 +673,11 @@ function createServer(rendererDir) {
         const message = (payload.message || '').trim()
         if (!message) return sendJson(res, 400, { ok: false, error: 'Write a message first.' })
         if (!authFwd) return sendJson(res, 401, { ok: false, error: 'Sign in to send feedback.' })
-        const [code, data] = await forward('POST', '/api/feedback', { message, app_version: APP_VERSION }, authFwd)
+        // Local logs ride along with the report. Bounded here rather than trusting
+        // the renderer — 30 days of a chatty session is megabytes of text.
+        const logs = String(payload.logs || '').slice(-200000)
+        const [code, data] = await forward('POST', '/api/feedback',
+          { message, app_version: APP_VERSION, ...(logs ? { logs } : {}) }, authFwd)
         if (code >= 200 && code < 300 && data && data.ok) return sendJson(res, 200, { ok: true })
         return sendJson(res, code, { ok: false, error: (data && (data.detail || data.error)) || 'Could not send — try again.' })
       })
@@ -492,12 +687,35 @@ function createServer(rendererDir) {
     // MCP activity status — thin passthrough so the renderer's Key/MCP toggle and
     // activity pill can show real ✓/✗ + last-tool without touching /mcp directly.
     // mcp_url lets Settings > MCP show/copy the real connector endpoint without
-    // the renderer ever hardcoding the backend host (dev overrides via ORYND_BACKEND).
+    // the renderer ever hardcoding the backend host. It is the PUBLIC https URL
+    // (MCP_PUBLIC_URL) — what an external client pastes — NOT DEFAULT_BACKEND (the
+    // app's own direct path); claude.ai rejects an http connector URL.
     if (req.method === 'GET' && req.url === '/api/mcp-status') {
       const [code, data] = await forward('GET', '/mcp/status', null, authFwd)
-      const mcp_url = DEFAULT_BACKEND.replace(/\/$/, '') + '/mcp'
+      const mcp_url = MCP_PUBLIC_URL
       if (code === 200 && data) return sendJson(res, 200, { ...data, mcp_url })
       return sendJson(res, 200, { enabled: false, mcp_url })
+    }
+
+    // Personal, durable MCP connector token — mint (or fetch the existing) one
+    // for the signed-in user via backend POST /mcp/token. This is what makes
+    // the URL Settings shows survive past the 1h Supabase JWT lifetime: the
+    // backend stores the refresh_token and does the hourly renewal itself, so
+    // the SAME pasted claude.ai connector URL just keeps working. Requires a
+    // live session (both access_token AND refresh_token) — a surface with
+    // neither yet (freshly opened, not signed in) gets ok:false, no crash.
+    if (req.method === 'GET' && req.url === '/api/mcp-token') {
+      if (!_session || !_session.access_token || !_session.refresh_token) {
+        return sendJson(res, 200, { ok: false, reason: 'not_signed_in' })
+      }
+      const [code, data] = await forward(
+        'POST', '/mcp/token', { refresh_token: _session.refresh_token },
+        { Authorization: 'Bearer ' + _session.access_token },
+      )
+      if (code === 200 && data && data.token) {
+        return sendJson(res, 200, { ok: true, token: data.token, connector_url: data.connector_url })
+      }
+      return sendJson(res, 200, { ok: false, reason: 'mint_failed' })
     }
 
     // Session relay: any surface pushes its current Supabase session here whenever
@@ -512,6 +730,7 @@ function createServer(rendererDir) {
         const accessToken = (payload.access_token || '').trim()
         if (!accessToken) {
           _session = null
+          persistSession(null)
           return sendJson(res, 200, { ok: true, cleared: true })
         }
         _session = {
@@ -519,6 +738,7 @@ function createServer(rendererDir) {
           refresh_token: (payload.refresh_token || '').trim(),
           user: payload.user || null,
         }
+        persistSession(_session)
         return sendJson(res, 200, { ok: true })
       })
       return
@@ -559,6 +779,7 @@ function createServer(rendererDir) {
           // Model-only change — we own the key, so this stays on the machine entirely.
           if (!_llm || !_llm.key) return sendJson(res, 400, { ok: false, error: 'no key connected' })
           _llm.model = model
+          persistLlm(_llm)
           return sendJson(res, 200, {
             ok: true, provider: _llm.provider, verified: _llm.verified,
             models: [], default_model: '', model,
@@ -586,6 +807,7 @@ function createServer(rendererDir) {
             model: data.model || model || '',
             verified: data.verified,
           }
+          persistLlm(_llm)
           sendJson(res, code, {
             ok: true,
             provider: data.provider,
@@ -603,8 +825,22 @@ function createServer(rendererDir) {
 
     if (req.method === 'POST' && req.url === '/api/generate') {
       let raw = ''
-      req.on('data', (c) => (raw += c))
+      let tooBig = false
+      // An attached image rides in this body as base64 (~1.34x the file). The renderer caps
+      // the file at 10 MB, but the bridge listens on localhost and must not trust that —
+      // without a ceiling a single malformed post grows `raw` until the process dies.
+      const MAX_GENERATE_BODY = 24 * 1024 * 1024
+      req.on('data', (c) => {
+        if (tooBig) return
+        raw += c
+        if (raw.length > MAX_GENERATE_BODY) {
+          tooBig = true
+          sendJson(res, 413, { error: 'attachment too large' })
+          req.destroy()
+        }
+      })
       req.on('end', () => {
+        if (tooBig) return
         let payload = {}
         try {
           payload = JSON.parse(raw || '{}')
@@ -620,11 +856,22 @@ function createServer(rendererDir) {
         // llmHeaders() carries the user's own key (this machine's, from _llm) so the
         // shared backend runs THIS turn on it and keeps nothing afterwards.
         const sessionId = payload.session_id || 'cad-bridge'
+        // Write the attachment to <project>/input/ before the turn runs, so it
+        // survives even if the build itself fails — that is exactly the case where
+        // the user wants to look at what they sent.
+        const inputPath = saveInputFile(sessionId, payload.image_b64, payload.image_name)
+        if (inputPath) _pushDebugLog(`input saved: ${inputPath}`)
         streamChat({
           message: payload.prompt || '',
           session_id: sessionId,
           context: { ...(payload.context || {}), ...(payload.route ? { llm_route: payload.route } : {}) },
-          mode: 'auto',
+          // Scenario mode from the composer selector (part_finder/text_to_cad/…),
+          // 'auto' by default → backend treats it as a priority hint, not an override.
+          mode: payload.mode || 'auto',
+          // Attached photo/blueprint. Top-level fields, NOT inside context: the backend
+          // serializes unknown context keys into the model's system note — base64 would
+          // land straight in the prompt (and in the provider's logs).
+          ...(payload.image_b64 ? { image_b64: payload.image_b64, image_name: payload.image_name || '' } : {}),
         }, { ...(authFwd || {}), ...llmHeaders() }, sessionId, res)
       })
       return
@@ -642,12 +889,27 @@ function createServer(rendererDir) {
 }
 
 /** Start the bridge. Returns the http.Server. rendererDir = folder with index.html + assets. */
-function startBridge(port = 8765, rendererDir = null) {
+function startBridge(port = 8765, rendererDir = null, userDataDir = null, safeStorage = null) {
+  // Restore a persisted session so an app/bridge restart keeps the user signed in
+  // (the renderer's /api/session fallback adopts it; an expired access_token is
+  // refreshed by supabase-js via the still-valid refresh_token). The BYO LLM key is
+  // restored too (encrypted at rest) so the user isn't re-pasting it every launch.
+  _userDataDir = userDataDir
+  _safeStorage = safeStorage
+  const restored = loadPersistedSession()
+  if (restored) _session = restored
+  const restoredLlm = loadPersistedLlm()
+  if (restoredLlm) _llm = restoredLlm
   const server = createServer(rendererDir)
   server.listen(port, '127.0.0.1', () => {
     console.log(`[bridge] running on http://127.0.0.1:${port} → ${DEFAULT_BACKEND}`)
   })
   server.on('error', (e) => console.error('[bridge] error:', e.message))
+  // pollMcpArtifacts no-ops instantly when signed out, so it's safe to just always
+  // run — matches the existing McpActivityPill's own always-on poll (2.5s); this
+  // one is slower (8s) since it also downloads files, not just a status check.
+  const mcpPollTimer = setInterval(() => { pollMcpArtifacts().catch(() => {}) }, 8000)
+  server.on('close', () => clearInterval(mcpPollTimer))
   return server
 }
 

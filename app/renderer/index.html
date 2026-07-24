@@ -10,6 +10,48 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 
+<!-- Crash reporter. This pane has no devtools, so an uncaught error used to show as a
+     blank white window with nothing to go on. Ship the message to the bridge's debug log
+     (curl http://127.0.0.1:8765/api/debug-log) and paint it on screen, so a white screen
+     always says WHY. First script on the page on purpose — it must outlive whatever fails. -->
+<script>
+(function () {
+  var reported = 0;
+  function report(kind, msg, extra) {
+    if (reported > 20) return;
+    reported += 1;
+    var line = '[' + kind + '] ' + msg + (extra ? ' @ ' + extra : '');
+    try {
+      fetch('/api/debug-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ msg: line }),
+      }).catch(function () {});
+    } catch (e) { /* bridge down — the on-screen banner below still shows it */ }
+    try {
+      var el = document.getElementById('orynd-crash');
+      if (!el) {
+        el = document.createElement('pre');
+        el.id = 'orynd-crash';
+        el.style.cssText = 'position:fixed;left:0;right:0;bottom:0;max-height:45vh;overflow:auto;'
+          + 'margin:0;padding:10px 12px;background:#2b0f10;color:#ffb4ae;font:11px/1.5 ui-monospace,monospace;'
+          + 'white-space:pre-wrap;z-index:99999;border-top:2px solid #e5534b';
+        (document.body || document.documentElement).appendChild(el);
+      }
+      el.textContent += line + '\n';
+    } catch (e) { /* nothing left to draw on */ }
+  }
+  window.addEventListener('error', function (e) {
+    report('error', (e.error && e.error.stack) || e.message || 'unknown',
+      e.filename ? e.filename.split('/').pop() + ':' + e.lineno : '');
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var r = e.reason;
+    report('promise', (r && r.stack) || (r && r.message) || String(r));
+  });
+})();
+</script>
+
 <!-- React + Babel (pinned, same as design prototype) -->
 <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
@@ -25,6 +67,10 @@
 
 <!-- Lucide icons -->
 <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+
+<!-- Supabase auth (public anon key) — window.SB -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="cad/supabase-client.js"></script>
 
 <style>
   html, body { margin: 0; padding: 0; height: 100%; background: var(--bg, #1a1916); }
@@ -44,8 +90,11 @@
 <script type="text/babel" src="cad/cad-thinking.jsx"></script>
 <script type="text/babel" src="cad/cad-auth.jsx"></script>
 <script type="text/babel" src="cad/cad-settings-v2.jsx"></script>
+<script type="text/babel" src="cad/cad-settings-full.jsx"></script>
 <script type="text/babel" src="cad/cad-notifications.jsx"></script>
+<script type="text/babel" src="cad/cad-popups.jsx"></script>
 <script type="text/babel" src="cad/empty/cad-empty-states.jsx"></script>
+<script type="text/babel" src="cad/cad-onboarding-f1.jsx"></script>
 <script type="text/babel" src="cad/cad-app.jsx"></script>
 
 <!-- mount the live task pane -->

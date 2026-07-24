@@ -7,11 +7,13 @@
  */
 // Load .env before any other require so ORYND_BACKEND is set before bridge.js reads it.
 require('dotenv').config()
-const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell } = require('electron')
+const { app, BrowserWindow, Tray, Menu, ipcMain, nativeImage, shell, safeStorage } = require('electron')
 const path = require('node:path')
+const fs = require('node:fs')
 const { startBridge } = require('./bridge')
 const { detectRunningCad, supportedCad } = require('./cad_detect')
 const { installAddin } = require('./addin_installer')
+const projects = require('./projects_store')
 const { initUpdater } = require('./updater')
 const logger = require('./logger')
 
@@ -23,11 +25,34 @@ let bridgeServer = null
 let updater = null
 let lastRunningCad = []
 
+// Register orynd:// as the deep-link protocol for OAuth callback.
+app.setAsDefaultProtocolClient('orynd')
+
 // Single-instance lock — re-launching focuses the existing window.
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
-  app.on('second-instance', () => showWindow())
+  app.on('second-instance', (_event, argv) => {
+    const deepLink = argv.find(a => a.startsWith('orynd://'))
+    if (deepLink) handleDeepLink(deepLink)
+    showWindow()
+  })
+}
+
+function handleDeepLink(url) {
+  try {
+    const parsed = new URL(url)
+    if (parsed.hostname === 'auth') {
+      const accessToken = parsed.searchParams.get('access_token')
+      const refreshToken = parsed.searchParams.get('refresh_token')
+      if (accessToken && mainWindow && !mainWindow.isDestroyed()) {
+        showWindow()
+        mainWindow.webContents.send('auth:token', { accessToken, refreshToken })
+      }
+    }
+  } catch (e) {
+    logger.error('deep-link parse error: ' + e.message)
+  }
 }
 
 function createWindow() {
@@ -105,9 +130,13 @@ function watchCad() {
 function registerIpc() {
   ipcMain.handle('cad:detect', () => detectRunningCad())
   ipcMain.handle('cad:supported', () => supportedCad())
-  ipcMain.handle('cad:install', (_e, cad) =>
-    installAddin(cad, { isPackaged: app.isPackaged, resourcesPath: process.resourcesPath }),
-  )
+  ipcMain.handle('cad:install', (_e, cad) => {
+    const r = installAddin(cad, { isPackaged: app.isPackaged, resourcesPath: process.resourcesPath })
+    // Remember what the user connected, so the next app update refreshes exactly
+    // those add-ins instead of guessing.
+    if (r.ok) rememberConnectedCad(cad)
+    return r
+  })
   ipcMain.handle('updater:check', () => updater && updater.check())
   ipcMain.handle('updater:install', () => updater && updater.install())
   ipcMain.handle('bridge:status', () => ({
@@ -118,19 +147,101 @@ function registerIpc() {
   ipcMain.handle('window:reload', () => mainWindow && mainWindow.webContents.reload())
   // Open URL in system default browser — never inside Electron.
   ipcMain.handle('shell:openExternal', (_e, url) => shell.openExternal(url))
+  // Open the folder holding a finished build. shell.openPath resolves to '' on
+  // success and an error string otherwise — hand that back to the caller.
+  ipcMain.handle('shell:openPath', (_e, p) => shell.openPath(p))
   // For the in-app Feedback button: collect recent logs (days: 1 / 7 / 30).
   ipcMain.handle('logs:collect', (_e, days) => logger.collect(days || 7))
+  // Local project store — chats live on the user's disk, one folder per project.
+  ipcMain.handle('projects:list', () => projects.list())
+  ipcMain.handle('projects:load', (_e, id) => projects.load(id))
+  ipcMain.handle('projects:save', (_e, id, data) => projects.save(id, data))
+  ipcMain.handle('projects:forget', (_e, id) => projects.forget(id))
+  ipcMain.handle('projects:dir', (_e, id) => projects.projectDir(id))
 }
+
+/**
+ * Keep the CAD add-ins in step with the app.
+ *
+ * `installAddin` used to run only when the user clicked Connect. After an app
+ * update that left the OLD add-in in place — the app spoke a protocol the add-in
+ * didn't know, and nothing said why. We re-copy once per version for every CAD the
+ * user has already connected. Reloading it inside the CAD host stays manual:
+ * Fusion imports the add-in module once at startup and offers no API to reload it.
+ */
+const addinStampPath = () => path.join(app.getPath('userData'), 'addins-version.json')
+
+function readAddinStamp() {
+  try { return JSON.parse(fs.readFileSync(addinStampPath(), 'utf8')) } catch { return null }
+}
+
+function rememberConnectedCad(cad) {
+  const prev = readAddinStamp() || {}
+  const connected = Array.from(new Set([...(prev.connected || []), cad]))
+  try {
+    fs.writeFileSync(addinStampPath(), JSON.stringify({ version: app.getVersion(), connected }, null, 2))
+  } catch (e) {
+    logger.error('addin stamp write failed: ' + e.message)
+  }
+}
+
+function refreshAddinsOnUpgrade() {
+  const stamp = addinStampPath()
+  const prev = readAddinStamp()
+  if (prev && prev.version === app.getVersion()) return
+
+  const connected = (prev && Array.isArray(prev.connected) && prev.connected.length)
+    ? prev.connected
+    : ['fusion360'] // first run after this feature ships: refresh the one we ship for
+  for (const cad of connected) {
+    const r = installAddin(cad, { isPackaged: app.isPackaged, resourcesPath: process.resourcesPath })
+    logger.info(`addin refresh ${cad}: ${r.ok ? 'ok → ' + r.target : 'failed → ' + r.error}`)
+  }
+  try {
+    fs.writeFileSync(stamp, JSON.stringify({ version: app.getVersion(), connected }, null, 2))
+  } catch (e) {
+    logger.error('addin stamp write failed: ' + e.message)
+  }
+}
+
+// macOS delivers deep-links via open-url event.
+app.on('open-url', (event, url) => {
+  event.preventDefault()
+  handleDeepLink(url)
+})
 
 app.whenReady().then(() => {
   logger.init(app.getPath('userData'))
   logger.info(`app start v${app.getVersion()} on ${process.platform}`)
-  bridgeServer = startBridge(BRIDGE_PORT, path.join(__dirname, 'renderer'))
+  // Index lives in userData so it survives an app update; the chats themselves
+  // live in Documents/ORYND/projects and survive a reinstall.
+  projects.init(app.getPath('userData'))
+  refreshAddinsOnUpgrade()
+  bridgeServer = startBridge(BRIDGE_PORT, path.join(__dirname, 'renderer'), app.getPath('userData'), safeStorage)
   logger.info(`bridge started on ${BRIDGE_PORT}`)
   registerIpc()
   createWindow()
   createTray()
   watchCad()
+
+  // DEV-ONLY: auto-reload the window when renderer files change (no rebuild needed).
+  // Inert in the packaged app (app.isPackaged === true there).
+  if (!app.isPackaged) {
+    try {
+      let reloadTimer = null
+      fs.watch(path.join(__dirname, 'renderer'), { recursive: true }, (_evt, file) => {
+        if (file && /\.(jsx?|css|html)$/.test(file)) {
+          clearTimeout(reloadTimer)
+          reloadTimer = setTimeout(() => {
+            if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.reload()
+          }, 200)
+        }
+      })
+      logger.info('dev auto-reload: watching renderer/')
+    } catch (e) {
+      logger.error('dev auto-reload watch failed: ' + e.message)
+    }
+  }
 
   updater = initUpdater(app, (info) => {
     if (mainWindow && !mainWindow.isDestroyed()) {

@@ -108,7 +108,7 @@ const NOTIFS = [
 function _notifAction(label, ctx) {
   const l = (label || '').toLowerCase();
   if (l.includes('upgrade') || l.includes('trial') || l.includes('pro')) {
-    if (window.orynd && window.orynd.openExternal) window.orynd.openExternal('https://oryndai.com/billing');
+    if (window.orynd && window.orynd.openExternal) window.orynd.openExternal('https://oryndai.com/account#billing');
     return;
   }
   if (l.includes('sign in')) { if (ctx && ctx.onSignIn) ctx.onSignIn(); return; }

@@ -135,15 +135,22 @@ function SettingsScreen({ onBack }) {
 }
 
 // ---------- TOASTS ----------
-function Toast({ kind = 'accent', icon, title, text, action, dismissable = true }) {
-  return _sc('div', { className: 'tp-toast ' + kind },
-    _sc('span', { className: 'tic' }, _sc(icon, { size: 17 })),
+// compact = single-line top-anchored variant (see .tp-toasts-top in cad-theme.css).
+// onAction: optional — without it the action line stays what it always was, a label.
+function Toast({ kind = 'accent', icon, title, text, action, onAction, dismissable = true, compact = false, onDismiss }) {
+  return _sc('div', { className: 'tp-toast ' + (compact ? 'compact ' : '') + kind },
+    _sc('span', { className: 'tic' }, _sc(icon, { size: compact ? 16 : 17 })),
     _sc('div', { className: 'tp-toast-main' },
       _sc('div', { className: 'tp-toast-title' }, title),
       text && _sc('div', { className: 'tp-toast-text' }, text),
-      action && _sc('span', { className: 'tp-toast-act' }, action, ' ', _sc(SI.Arrow, { size: 13 })),
+      action && _sc('span', {
+        className: 'tp-toast-act',
+        onClick: onAction || undefined,
+        role: onAction ? 'button' : undefined,
+        style: onAction ? { cursor: 'pointer' } : undefined,
+      }, action, ' ', _sc(SI.Arrow, { size: 13 })),
     ),
-    dismissable && _sc('button', { className: 'tp-toast-x' }, _sc(SI.X, { size: 13 })),
+    dismissable && _sc('button', { className: 'tp-toast-x', onClick: onDismiss }, _sc(SI.X, { size: 13 })),
   );
 }
 

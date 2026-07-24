@@ -1,0 +1,229 @@
+{
+  "schemaVersion": 1,
+  "title": "ORYND Project 0 — F1 showcase assembly",
+  "units": "mm",
+  "coordinateSystem": {
+    "origin": "floor centre at ground plane",
+    "axes": {
+      "x": "forward (nose)",
+      "y": "left when facing forward",
+      "z": "up"
+    },
+    "rotations": "Euler degrees [X, Y, Z], applied in XYZ order"
+  },
+  "safety": "Visual showcase only. Not manufacturing, vehicle, or safety-certified geometry.",
+  "instances": [
+    {
+      "id": "floor",
+      "asset": "floor.stl",
+      "positionMm": [
+        0,
+        0,
+        0
+      ],
+      "rotationDeg": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "mate": "reference datum; ground at Z=0"
+    },
+    {
+      "id": "nose",
+      "asset": "nose.stl",
+      "positionMm": [
+        600,
+        0,
+        135
+      ],
+      "rotationDeg": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "mate": "nose rear mount to floor front centreline"
+    },
+    {
+      "id": "sidepod-left",
+      "asset": "sidepod.stl",
+      "positionMm": [
+        -80,
+        350,
+        175
+      ],
+      "rotationDeg": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "mate": "inboard face 90mm above floor"
+    },
+    {
+      "id": "sidepod-right",
+      "asset": "sidepod.stl",
+      "positionMm": [
+        -80,
+        -350,
+        175
+      ],
+      "rotationDeg": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        -1,
+        1
+      ],
+      "mate": "mirror sidepod-left across XZ plane"
+    },
+    {
+      "id": "rear-wing",
+      "asset": "wing.stl",
+      "positionMm": [
+        -1450,
+        0,
+        315
+      ],
+      "rotationDeg": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "mate": "wing pylons land on rear floor/diffuser"
+    },
+    {
+      "id": "halo",
+      "asset": "halo.stl",
+      "positionMm": [
+        -180,
+        0,
+        250
+      ],
+      "rotationDeg": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "mate": "front pylon to cockpit centre; rear legs to cockpit shoulders"
+    },
+    {
+      "id": "wheel-front-left",
+      "asset": "wheel.stl",
+      "positionMm": [
+        930,
+        650,
+        165
+      ],
+      "rotationDeg": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "mate": "hub axis parallel to Y"
+    },
+    {
+      "id": "wheel-front-right",
+      "asset": "wheel.stl",
+      "positionMm": [
+        930,
+        -650,
+        165
+      ],
+      "rotationDeg": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "mate": "hub axis parallel to Y"
+    },
+    {
+      "id": "wheel-rear-left",
+      "asset": "wheel.stl",
+      "positionMm": [
+        -1000,
+        650,
+        165
+      ],
+      "rotationDeg": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "mate": "hub axis parallel to Y"
+    },
+    {
+      "id": "wheel-rear-right",
+      "asset": "wheel.stl",
+      "positionMm": [
+        -1000,
+        -650,
+        165
+      ],
+      "rotationDeg": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "mate": "hub axis parallel to Y"
+    }
+  ],
+  "assemblyOrder": [
+    "floor",
+    "nose",
+    "sidepod-left",
+    "sidepod-right",
+    "rear-wing",
+    "halo",
+    "wheel-front-left",
+    "wheel-front-right",
+    "wheel-rear-left",
+    "wheel-rear-right"
+  ]
+}

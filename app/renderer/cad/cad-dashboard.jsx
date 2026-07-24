@@ -32,7 +32,9 @@ const STATUS_LABEL = { done: 'Done', review: 'Review', fail: 'Failed', draft: 'D
 
 // ---------- pane tab bar ----------
 function PaneTabs({ active = 'chat', onTab }) {
-  const tabs = [['chat', 'Chat', DI.Spark], ['overview', 'Overview', DI.Layers], ['library', 'Library', DI.Cube, PARTS.length], ['runs', 'Runs', DI.Clock]];
+  // No count badge on Library — there's no real library backend yet (PARTS is mock
+  // data for the dashboard gallery only; the live Library view is an empty state).
+  const tabs = [['chat', 'Chat', DI.Spark], ['overview', 'Overview', DI.Layers], ['library', 'Library', DI.Cube], ['runs', 'Runs', DI.Clock]];
   return _dh('div', { className: 'tp-tabs' },
     tabs.map(([id, label, ic, count]) =>
       _dh('button', { key: id, className: 'tp-tab' + (id === active ? ' active' : ''), onClick: onTab ? () => onTab(id) : undefined },

@@ -181,4 +181,40 @@ function ThinkingBubble({ activeIndex = 2, done = false }) {
   );
 }
 
-window.THINK = { ThinkingState, ThinkingPane, ThinkOrbit, ThinkingBlock, ThinkingBubble, THINK_STAGES, THINK_VARIANTS };
+// ---------- REAL RUN PROGRESS (driven by live /chat events, not intervals) ----------
+// steps come from actual agent_call/agent_result/stage/candidates/model_ready
+// events; the timer is real wall-clock elapsed. No canned "caramelizing onions".
+// onShare: only passed once a run finished and actually produced files — the button
+// simply isn't there on a failed or conversational turn (cad-app decides).
+// onOpen: same deal for the built files — a path printed as text is not a result,
+// the user has to be able to reach the model in one click.
+function RunProgress({ steps = [], elapsedMs = 0, running = true, error = null, onShare = null, onOpen = null, onOpenInFusion = null }) {
+  const secs = (Math.max(0, elapsedMs) / 1000).toFixed(1);
+  return _th('div', { className: 'tk-run', style: { display: 'flex', flexDirection: 'column', gap: 8, padding: '2px 0' } },
+    _th('div', { className: 'tk-run-head', style: { display: 'flex', alignItems: 'center', gap: 8 } },
+      running
+        ? _th(ThinkOrbit)
+        : _th(error ? TI.Info : TI.CheckCircle, { size: 14, style: { flexShrink: 0, color: error ? 'var(--err, #e5484d)' : 'var(--ok)' } }),
+      _th('span', { className: 'tk-run-label', style: { fontSize: 12, fontWeight: 600, opacity: .85 } },
+        running ? 'Working' : (error ? 'Failed' : 'Done')),
+      _th('span', { className: 'tk-run-timer', style: { marginLeft: 'auto', fontSize: 11, opacity: .6, fontVariantNumeric: 'tabular-nums' } }, secs + 's'),
+      onOpenInFusion && _th('button', {
+        className: 'tp-btn primary', onClick: onOpenInFusion, title: 'Import the built STEP into the active Fusion document',
+        style: { padding: '0 8px', height: 22, fontSize: 11 },
+      }, 'Open in Fusion'),
+      onOpen && _th('button', {
+        className: 'tp-btn', onClick: onOpen, title: 'Open the folder with the built files',
+        style: { padding: '0 8px', height: 22, fontSize: 11 },
+      }, 'Open files'),
+      onShare && _th('button', {
+        className: 'tp-btn', onClick: onShare, title: 'Share this build',
+        style: { padding: '0 8px', height: 22, fontSize: 11, gap: 5 },
+      }, _th(TI.Send, { size: 12 }), 'Share'),
+    ),
+    steps.length > 0 && _th('div', { style: { display: 'flex', flexDirection: 'column', gap: 7 } },
+      steps.map((s, j) => _th(window.CAD.StepCard, { key: s.key || j, status: s.status, title: s.title, detail: s.detail }))),
+    error && _th('div', { className: 'tp-step-detail', style: { color: 'var(--err, #e5484d)' } }, error),
+  );
+}
+
+window.THINK = { ThinkingState, ThinkingPane, ThinkOrbit, ThinkingBlock, ThinkingBubble, RunProgress, THINK_STAGES, THINK_VARIANTS };

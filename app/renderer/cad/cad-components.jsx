@@ -7,7 +7,7 @@ const h = React.createElement;
 
 // ---------- HEADER ----------
 // Header — when `user` prop provided, replaces settings gear with AccountChip + dropdown menu.
-function Header({ connection = 'connected', route = 'ORYND', onSettings, onBell, onSignOut, user, hasUnread }) {
+function Header({ connection = 'connected', route = 'ORYND', onSettings, onBell, onSignOut, user, hasUnread, credits, onNewChat }) {
   const [menuOpen, setMenuOpen] = React.useState(false);
   const menuRef = React.useRef(null);
   React.useEffect(() => {
@@ -28,6 +28,25 @@ function Header({ connection = 'connected', route = 'ORYND', onSettings, onBell,
         h('span', { className: 'tp-name' }, h('b', null, 'ORYND'), ' CAD Bridge'),
       ),
       h('div', { className: 'tp-head-spacer' }),
+      // New chat — the only way to leave a chat you're in. Without it the F1
+      // onboarding sits on the one and only screen forever and every later request
+      // piles on top of it.
+      onNewChat && h('button', {
+        className: 'tp-chip', title: 'Start a new chat — the current one stays saved',
+        onClick: onNewChat, style: { cursor: 'pointer' },
+      }, h(I.Plus, { size: 13 }), 'New chat'),
+      // Builds left — always visible so the user knows where they stand before
+      // hitting the paywall (founder: "где количество запросов?"). The number is
+      // Supabase's, fetched by cad-app; Pro passes the string 'Unlimited' since
+      // its cap is never shown. Hidden only when we have no answer at all.
+      credits != null && credits !== '' && h('span', {
+        className: 'tp-chip' + (credits === 0 ? ' is-off' : ''),
+        title: credits === 0
+          ? 'No builds left — upgrade at oryndai.com'
+          : (credits === 'Unlimited' ? 'Unlimited builds on Pro' : 'Builds left on your plan'),
+      }, credits === 'Unlimited'
+          ? 'Unlimited'
+          : credits + (credits === 1 ? ' build left' : ' builds left')),
       chips[connection === 'offline' ? 'offline' : 'connected'],
       h('span', { className: 'tp-bell-wrap' },
         h('button', { className: 'tp-icon-btn', title: 'Notifications', onClick: onBell || undefined }, h(I.Bell, { size: 16 })),
@@ -47,7 +66,7 @@ function Header({ connection = 'connected', route = 'ORYND', onSettings, onBell,
         ),
       ),
       h('div', { className: 'tp-acctmenu-sep' }),
-      h('button', { className: 'tp-acctmenu-item', onClick: () => { setMenuOpen(false); window.orynd && window.orynd.openExternal('https://oryndai.com/billing'); } },
+      h('button', { className: 'tp-acctmenu-item', onClick: () => { setMenuOpen(false); window.orynd && window.orynd.openExternal('https://oryndai.com/account#billing'); } },
         h(I.Spark, { size: 15 }), 'Manage subscription', h('span', { className: 'ext' }, h(I.Arrow, { size: 13 }))),
       h('button', { className: 'tp-acctmenu-item', onClick: () => { setMenuOpen(false); onSettings && onSettings(); } },
         h(I.Settings, { size: 15 }), 'Settings'),
@@ -90,12 +109,65 @@ function UserMsg({ text, files = [] }) {
   );
 }
 
+// Inline **bold** / `code` within one line of text → an array of strings/spans.
+function _inlineSpans(line, keyPrefix) {
+  const parts = line.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).filter((s) => s !== '');
+  return parts.map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return h('strong', { key: keyPrefix + '-b' + i }, part.slice(2, -2));
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return h('code', { key: keyPrefix + '-c' + i, className: 'tp-inline-code' }, part.slice(1, -1));
+    }
+    return part;
+  });
+}
+
+// Minimal, dependency-free formatter for assistant text — founder 24.07: "хотя бы
+// текстом, не сплошным". No markdown lib (the renderer loads JSX over plain HTTP
+// via an in-browser Babel step — adding a bundled dependency there is its own
+// project, not a same-session fix). Covers what deep_research/build replies
+// actually use: paragraphs, **bold**, `code`, bullet/numbered lists, # headings.
+// Anything fancier (tables) still falls back to a plain paragraph — readable,
+// just not laid out — rather than breaking.
+function formatAssistText(text) {
+  const blocks = String(text || '').split(/\n{2,}/);
+  const out = [];
+  blocks.forEach((block, bi) => {
+    const lines = block.split('\n').filter((l) => l.trim() !== '');
+    if (!lines.length) return;
+    const isBulleted = lines.every((l) => /^\s*[-*•]\s+/.test(l));
+    const isNumbered = lines.every((l) => /^\s*\d+[.)]\s+/.test(l));
+    if (isBulleted || isNumbered) {
+      const Tag = isNumbered ? 'ol' : 'ul';
+      out.push(h(Tag, { key: 'b' + bi, className: 'tp-assist-list' },
+        lines.map((l, li) => h('li', { key: li },
+          _inlineSpans(l.replace(/^\s*([-*•]|\d+[.)])\s+/, ''), bi + '-' + li)))));
+      return;
+    }
+    const heading = lines.length === 1 && lines[0].match(/^(#{1,3})\s+(.*)$/);
+    if (heading) {
+      out.push(h('div', { key: 'h' + bi, className: 'tp-assist-heading' }, _inlineSpans(heading[2], 'h' + bi)));
+      return;
+    }
+    // Plain paragraph — single '\n' inside one block is a soft line break, not a
+    // new paragraph (matches how the model actually writes running prose).
+    const withBreaks = [];
+    lines.forEach((l, li) => {
+      if (li > 0) withBreaks.push(h('br', { key: 'br' + bi + '-' + li }));
+      withBreaks.push(..._inlineSpans(l, bi + '-' + li));
+    });
+    out.push(h('p', { key: 'p' + bi, className: 'tp-assist-p' }, withBreaks));
+  });
+  return out.length ? out : text;
+}
+
 // Assistant summary — supports one serif-italic emphasis word via {em:'word'}
 function AssistMsg({ children, em }) {
   return h('div', { className: 'tp-assist' },
     h('div', { className: 'tp-assist-mark' }, h(I.Spark, { size: 13 })),
     h('div', { className: 'tp-assist-body' },
-      children,
+      typeof children === 'string' ? formatAssistText(children) : children,
       em && h(React.Fragment, null, ' ', h('span', { className: 'em' }, em)),
     ),
   );
@@ -299,30 +371,118 @@ function EmptyState() {
 // ---------- COMPOSER ----------
 // No mode bar (the agent picks the mode). A round "+" opens a ChatGPT-style
 // attach menu; the route pill opens a working model dropdown.
+// `pick: true` — opens the image picker and really attaches. Items without it are still
+// visual-only and keep their honest "Soon" badge: File needs a STEP/STL/DXF parser the
+// backend doesn't have, CAD element needs a live SolidWorks selection bridge.
 const ATTACH_ITEMS = [
-  { id: 'photo', icon: I.Image,  title: 'Photo',       sub: 'Reference image → CAD' },
-  { id: 'file',  icon: I.File,   title: 'File',        sub: 'STEP · STL · DXF · sketch' },
-  { id: 'elem',  icon: I.Cube,   title: 'CAD element', sub: 'Pick a face / feature in SolidWorks' },
+  { id: 'photo',     icon: I.Image,  title: 'Photo',      sub: 'Reference image → CAD', pick: true },
+  { id: 'blueprint', icon: I.Image,  title: 'Blueprint',  sub: 'Engineering drawing → CAD (tags the message so the orchestrator routes it)', pick: true },
+  { id: 'file',      icon: I.File,   title: 'File',       sub: 'STEP · STL · DXF · sketch', soon: true },
+  { id: 'elem',      icon: I.Cube,   title: 'CAD element',sub: 'Pick a face / feature in SolidWorks', soon: true },
 ];
+
+// One image per message — deliberate. Grouping ("10 photos → 3 parts") means the model has to
+// work out which photo belongs to which part: real tokens, real ambiguity. Separate parts go in
+// separate messages until that's designed properly.
+const ATTACH_MAX_BYTES = 10 * 1024 * 1024;
+// Extension has no local-model layer — it's BYOK-only (that's Workspace's job).
+// Don't offer "Local model" here: an end user has no Ollama running, and it
+// would silently degrade to keyword-algorithm routing with no real orchestration.
 const ROUTE_ITEMS = [
   { id: 'ORYND',  title: 'ORYND Cloud',  sub: 'Best quality · hosted' },
   { id: 'Claude', title: 'BYO Claude',   sub: 'Your Anthropic key' },
   { id: 'OpenAI', title: 'BYO OpenAI',   sub: 'Your OpenAI key' },
-  { id: 'Local',  title: 'Local model',  sub: 'Offline · on this machine' },
+  { id: 'Gemini', title: 'BYO Gemini',   sub: 'Your Google key' },
+  { id: 'Groq',   title: 'BYO Groq',     sub: 'Your Groq key' },
 ];
 
-function Composer({ value = '', route = 'ORYND', sending = false, disabled = false, selection = null, onSend = null }) {
-  const [menu, setMenu] = React.useState(null); // 'attach' | 'route' | null
-  const [activeRoute, setActiveRoute] = React.useState(route);
+// Scenario modes — the four+one task lanes the user can steer the orchestrator
+// into (mirrors the competitor's tool menu). 'auto' lets Claude decide, and is
+// the default. Any other is sent as a PRIORITY hint, never a hard override.
+const SCENARIO_ITEMS = [
+  { id: 'auto',        short: 'Auto',        title: 'Auto',         sub: 'ORYND picks the right tool' },
+  { id: 'part_finder', short: 'Part finder', title: 'Part finder',  sub: 'Find a standard purchased part' },
+  { id: 'text_to_cad', short: 'Text → CAD',  title: 'Text → CAD',   sub: 'Build geometry from a description' },
+  { id: 'copilot',     short: 'Copilot',     title: 'CAD Copilot',  sub: 'Act on the open document' },
+  { id: 'sources',     short: 'Sources',     title: 'Sources',      sub: 'Research docs & datasheets' },
+  // "чертёж" = technical blueprint (with dimensions/views), NOT a sketch/drawing —
+  // founder caught the naming: "Drawing" reads as "we draw something", wrong meaning.
+  { id: 'blueprint',   short: 'Blueprint',   title: 'Blueprint → 3D', sub: 'Build from an engineering drawing', soon: true },
+];
+
+function Composer({ value = '', route = 'ORYND', sending = false, disabled = false, selection = null, onSend = null,
+  connMode = 'key', onConnMode = null, keyOk = false, mcpOk = false, routes = null }) {
+  const [menu, setMenu] = React.useState(null); // 'attach' | 'route' | 'scenario' | null
+  // Route is no longer user-picked (the picker is gone — see the composer row below).
+  // Kept as a value so `onSend` keeps its shape and the backend keeps receiving the
+  // 'backend decides' route; which vendor actually runs is decided by the user's key.
+  const activeRoute = route;
+  // Scenario mode — a PRIORITY hint sent to the orchestrator. 'auto' = Claude decides.
+  const [scenario, setScenario] = React.useState('auto');
+  // Attached image: { kind:'photo'|'blueprint', name, b64, size } — one at a time.
+  const [attach, setAttach] = React.useState(null);
+  const [attachErr, setAttachErr] = React.useState('');
   const wrapRef = React.useRef(null);
   const taRef = React.useRef(null);
+  const fileRef = React.useRef(null);
+  const pendingKind = React.useRef('photo');
   const live = !!onSend; // wired (chat) vs static (gallery)
+  // Picking "MCP" is an intent, not a connection. The pane goes read-only only once an
+  // external agent has actually attached (mcpOk) — until then this is still your composer,
+  // and locking it on the click alone made the app look broken while nothing was connected.
+  const mcpPicked = connMode === 'mcp';
+  const isMcp = mcpPicked && mcpOk;
+  const scLabel = (SCENARIO_ITEMS.find((s) => s.id === scenario) || SCENARIO_ITEMS[0]).short;
+
+  const openPicker = (kind) => {
+    pendingKind.current = kind;
+    setMenu(null);
+    setAttachErr('');
+    if (fileRef.current) { fileRef.current.value = ''; fileRef.current.click(); }
+  };
+  const onFileChosen = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    if (f.size > ATTACH_MAX_BYTES) {
+      setAttachErr('Image is ' + (f.size / 1048576).toFixed(1) + ' MB — keep it under 10 MB.');
+      return;
+    }
+    const kind = pendingKind.current;
+    const rd = new FileReader();
+    rd.onerror = () => setAttachErr('Could not read that file.');
+    rd.onload = () => {
+      // readAsDataURL gives "data:image/png;base64,AAAA…" — the backend wants the payload only.
+      const s = String(rd.result || '');
+      const b64 = s.slice(s.indexOf(',') + 1);
+      if (!b64) { setAttachErr('That file came back empty.'); return; }
+      setAttach({ kind, name: f.name, b64, size: f.size });
+      // Founder's mechanism: picking Blueprint writes the @blueprint tag into the message
+      // itself, so the orchestrator knows the direction even on a bare "make this".
+      if (kind === 'blueprint' && taRef.current && !/@blueprint\b/.test(taRef.current.value)) {
+        taRef.current.value = ('@blueprint ' + taRef.current.value).trimEnd() + ' ';
+        taRef.current.focus();
+      }
+    };
+    rd.readAsDataURL(f);
+  };
+
   const fire = () => {
-    if (!live || sending || disabled) return;
-    const v = (taRef.current && taRef.current.value || '').trim();
-    if (!v) return;
-    onSend(v, activeRoute);
+    // `mcpPicked`, not `isMcp`: in MCP mode the external agent drives this session,
+    // so sending from here is off the table whether or not it has connected yet.
+    // Typing stays allowed — the pane going dead on the click alone read as broken.
+    if (!live || sending || disabled || mcpPicked) return;
+    let v = (taRef.current && taRef.current.value || '').trim();
+    if (!v && !attach) return;
+    // Attached an image and said nothing — don't send an empty turn, say the obvious thing.
+    if (!v && attach) {
+      v = attach.kind === 'blueprint'
+        ? '@blueprint Build this part from the attached engineering drawing.'
+        : 'Build this part from the attached photo.';
+    }
+    onSend(v, activeRoute, scenario, attach);
     if (taRef.current) taRef.current.value = '';
+    setAttach(null);
+    setAttachErr('');
   };
   React.useEffect(() => {
     if (!menu) return;
@@ -334,10 +494,17 @@ function Composer({ value = '', route = 'ORYND', sending = false, disabled = fal
   return h('div', { className: 'tp-composer', ref: wrapRef },
     menu === 'attach' && h('div', { className: 'tp-pop attach' },
       h('div', { className: 'tp-pop-label' }, 'Add to message'),
-      ATTACH_ITEMS.map((it) => h('button', { className: 'tp-popitem', key: it.id, onClick: () => setMenu(null) },
-        h('span', { className: 'pico' }, h(it.icon, { size: 16 })),
-        h('span', { className: 'pmain' }, h('span', { className: 'pt' }, it.title), h('span', { className: 'ps' }, it.sub)),
-      )),
+      ATTACH_ITEMS.map((it) => {
+        const usable = !!it.pick && live && !isMcp;
+        return h('button', {
+          className: 'tp-popitem' + (usable ? '' : ' soon'), key: it.id,
+          onClick: usable ? () => openPicker(it.id) : undefined,
+        },
+          h('span', { className: 'pico' }, h(it.icon, { size: 16 })),
+          h('span', { className: 'pmain' }, h('span', { className: 'pt' }, it.title), h('span', { className: 'ps' }, it.sub)),
+          !usable && h('span', { className: 'badge-soon' }, 'Soon'),
+        );
+      }),
       h('div', { className: 'tp-pop-sep' }),
       h('button', { className: 'tp-popitem soon' },
         h('span', { className: 'pico' }, h(I.Layers, { size: 16 })),
@@ -345,29 +512,105 @@ function Composer({ value = '', route = 'ORYND', sending = false, disabled = fal
         h('span', { className: 'badge-soon' }, 'Soon'),
       ),
     ),
-    menu === 'route' && h('div', { className: 'tp-pop route' },
-      h('div', { className: 'tp-pop-label' }, 'Model route'),
-      ROUTE_ITEMS.map((it) => h('button', { className: 'tp-popitem', key: it.id, onClick: () => { setActiveRoute(it.id); setMenu(null); } },
+    menu === 'scenario' && h('div', { className: 'tp-pop route' },
+      h('div', { className: 'tp-pop-label' }, 'Scenario'),
+      SCENARIO_ITEMS.map((it) => h('button', {
+        className: 'tp-popitem' + (it.soon ? ' soon' : ''), key: it.id,
+        onClick: it.soon ? undefined : () => { setScenario(it.id); setMenu(null); },
+      },
         h('span', { className: 'pmain' }, h('span', { className: 'pt' }, it.title), h('span', { className: 'ps' }, it.sub)),
-        activeRoute === it.id && h('span', { className: 'ptick' }, h(I.Check, { size: 15 })),
+        it.soon && h('span', { className: 'badge-soon' }, 'Soon'),
+        !it.soon && scenario === it.id && h('span', { className: 'ptick' }, h(I.Check, { size: 15 })),
       )),
     ),
     h('div', { className: 'tp-input-wrap' },
       selection && h('div', { className: 'tp-selrow' }, h(window.CAD.SelectionChip, { ...selection })),
-      h('textarea', { className: 'tp-input', rows: value ? 2 : 1, defaultValue: value, ref: taRef, placeholder: selection ? 'Edit this selection…' : 'Describe a part, or attach a reference…', readOnly: !live, onKeyDown: live ? (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fire(); } } : undefined }),
+      // Hidden picker — a real <input type=file> works in both engines this pane runs in
+      // (Electron's Chromium and the CAD host's webview); a native dialog does not.
+      h('input', {
+        type: 'file', accept: 'image/*', ref: fileRef, style: { display: 'none' },
+        onChange: onFileChosen,
+      }),
+      attach && h('div', { className: 'tp-selrow' },
+        h('div', { className: 'tp-selchip' },
+          h('span', { className: 'ic' }, h(I.Image, { size: 14 })),
+          h('span', { className: 'lab' },
+            (attach.kind === 'blueprint' ? 'Blueprint ' : 'Photo '),
+            h('b', null, attach.name),
+            '  ·  ' + (attach.size / 1024).toFixed(0) + ' KB'),
+          h('button', {
+            className: 'x', title: 'Detach', onClick: () => { setAttach(null); setAttachErr(''); },
+          }, h(I.X, { size: 12 })),
+        ),
+      ),
+      attachErr && h('div', { className: 'tp-selrow' },
+        h('span', { style: { fontSize: '11.5px', color: 'var(--danger, #e5534b)' } }, attachErr)),
+      h('textarea', {
+        className: 'tp-input', rows: value ? 2 : 1, defaultValue: value, ref: taRef,
+        placeholder: isMcp
+          ? 'MCP mode — this pane mirrors your agent’s session'
+          : (mcpPicked
+            ? 'MCP selected — waiting for your agent to connect. You can still type here.'
+            : (selection ? 'Edit this selection…' : 'Describe a part, or attach a reference…')),
+        readOnly: !live || isMcp,
+        onKeyDown: (live && !isMcp) ? (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); fire(); } } : undefined,
+      }),
       h('div', { className: 'tp-input-row' },
         h('button', { className: 'tp-plus' + (menu === 'attach' ? ' open' : ''), title: 'Add', onClick: () => setMenu(menu === 'attach' ? null : 'attach') }, h(I.Plus, { size: 18 })),
+        !isMcp && h('button', {
+          className: 'tp-route' + (menu === 'scenario' ? ' open' : '') + (scenario !== 'auto' ? ' active' : ''),
+          title: 'Scenario — steer the orchestrator', onClick: () => setMenu(menu === 'scenario' ? null : 'scenario'),
+        }, h(I.Layers, { size: 13 }), scLabel, h(I.Chevron, { size: 12 })),
         h('div', { style: { flex: 1 } }),
-        h('button', { className: 'tp-route' + (menu === 'route' ? ' open' : ''), onClick: () => setMenu(menu === 'route' ? null : 'route') },
-          h('span', { className: 'rdot' }), activeRoute, h(I.Chevron, { size: 12 })),
-        h('button', { className: 'tp-send', disabled: disabled || sending, onClick: fire }, h(I.Send, { size: 17 })),
+        onConnMode && h('div', { className: 'tp-connseg' },
+          h('button', { className: connMode === 'key' ? 'active' : '', onClick: () => onConnMode('key') },
+            h('span', { className: 'cdot ' + (keyOk ? 'ok' : 'off') }), 'Key'),
+          h('button', { className: connMode === 'mcp' ? 'active' : '', onClick: () => onConnMode('mcp') },
+            h('span', { className: 'cdot ' + (mcpOk ? 'ok' : 'off') }), 'MCP'),
+        ),
+        // Model-route picker removed (founder, 22.07). Picking the vendor by hand made
+        // no sense: the key already says whose it is, and choosing the model WITHIN a
+        // vendor (opus vs sonnet) belongs in Settings, not on every message. The
+        // "ORYND Cloud" entry was worse than useless — it advertised "Best quality ·
+        // hosted" while the server holds no key, so it quietly fell through to keyword
+        // search and charged a credit for it.
+        mcpPicked
+          ? h('div', { className: 'tp-mcp-lock', title: 'Sending is off in MCP mode' }, h(I.Lock, { size: 15 }))
+          : h('button', { className: 'tp-send', disabled: disabled || sending, onClick: fire }, h(I.Send, { size: 17 })),
       ),
+      isMcp && h('div', { className: 'tp-mcp-hint' }, h(I.Plug, { size: 12 }), 'Send from your MCP client — Claude or ChatGPT recommended'),
     ),
   );
 }
 
+// ---------- MCP ACTIVITY PILL (cheap "is it alive" signal, no SSE yet) ----------
+// Rendered above the composer while connMode==='mcp'. `status` is the raw
+// /api/mcp-status payload, polled every ~2.5s by OryndApp. Three states only —
+// this deliberately stays cheap; the full step-by-step card is a later SSE build.
+function McpActivityPill({ status = null }) {
+  if (!status || status.enabled !== true) {
+    return h('div', { className: 'tp-chip is-off is-mono' }, h('span', { className: 'dot' }), 'via MCP: backend unreachable');
+  }
+  const recentMs = 15000;
+  const active = status.last_call_ts && (Date.now() / 1000 - status.last_call_ts) < recentMs / 1000;
+  if (active) {
+    return h('div', { className: 'tp-chip is-ok is-live is-mono' },
+      h('span', { className: 'dot' }), 'via MCP: active · last step: ' + (status.last_tool || '…'));
+  }
+  return h('div', { className: 'tp-chip is-mono', style: { color: 'var(--ink-3)', borderColor: 'var(--glass-edge)', background: 'rgba(255,255,255,.04)' } },
+    h('span', { className: 'dot' }), 'via MCP: connected · waiting for calls');
+}
+
 // ---------- UPDATE AVAILABLE BANNER ----------
-function UpdateBanner({ onUpdate, onDismiss, version = '1.4.2' }) {
+// forced=true (after AUTO_INSTALL_AFTER prompts) → the update is downloading and
+// will install on quit; no "Later" / dismiss is offered.
+function UpdateBanner({ onUpdate, onDismiss, version = '1.4.2', forced = false }) {
+  if (forced) {
+    return h('div', { className: 'tp-update' },
+      h('span', { className: 'uico' }, h(I.Refresh, { size: 14 })),
+      h('span', { className: 'utxt' }, h('b', null, 'Updating to v' + version), ' · installs on restart'),
+    );
+  }
   return h('div', { className: 'tp-update' },
     h('span', { className: 'uico' }, h(I.Refresh, { size: 14 })),
     h('span', { className: 'utxt' }, h('b', null, 'Update available'), ' · v' + version),
@@ -381,5 +624,5 @@ function UpdateBanner({ onUpdate, onDismiss, version = '1.4.2' }) {
 Object.assign(window.CAD = window.CAD || {}, {
   Header, Timeline, UserMsg, AssistMsg, StepCard, Card, ResearchCard,
   OperationPlanCard, ValidationCard, MacroCard, ApprovalGate, ExecutionCard,
-  ResultCard, Banner, EmptyState, Composer, TL_STEPS, UpdateBanner,
+  ResultCard, Banner, EmptyState, Composer, TL_STEPS, UpdateBanner, McpActivityPill,
 });

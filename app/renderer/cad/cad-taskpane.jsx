@@ -28,6 +28,18 @@ function renderBlock(b, i) {
   const C = window.CAD;
   switch (b.t) {
     case 'user':     return _h(C.UserMsg, { key: i, ...b });
+    case 'run': {
+      // A reopened chat comes back from chat.json, where a function (onOpen /
+      // onOpenInFusion, set live while the turn was running) never survived the
+      // save — JSON drops it silently. Rebuild it from the raw path fields that
+      // DID survive whenever the live handler isn't there (b.onOpen is only
+      // present on the turn that's still in memory from this session).
+      const onOpen = b.onOpen || (b.filesDir ? () => window.orynd && window.orynd.openPath(b.filesDir) : null);
+      const onOpenInFusion = b.onOpenInFusion || ((b.stepPath && window.adsk && window.adsk.fusionSendData)
+        ? () => window.adsk.fusionSendData('import', JSON.stringify({ action: 'import_file', path: b.stepPath }))
+        : null);
+      return _h(window.THINK.RunProgress, { key: i, ...b, onOpen, onOpenInFusion });
+    }
     case 'assist':   return _h(C.AssistMsg, { key: i, em: b.em }, b.text);
     case 'sep':      return _h('div', { className: 'tp-time-sep', key: i }, b.label);
     case 'steps':    return _h('div', { key: i, style: { display: 'flex', flexDirection: 'column', gap: 7 } },
