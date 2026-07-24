@@ -13,7 +13,11 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [macos-latest, windows-latest]
+        # Windows temporarily out (founder 24.07, v0.9 checkpoint): the Windows
+        # build failed on the workflow-permissions issue below, and with matrix
+        # fail-fast on by default it was cancelling the macOS build too. Put
+        # windows-latest back in this list for the real v1.0 release.
+        os: [macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
